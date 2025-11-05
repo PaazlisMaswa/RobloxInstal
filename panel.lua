@@ -226,7 +226,7 @@ local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
 
-local UI=loadstring(game:GetObjects("rbxassetid://92993655011671")[1].Source)
+local UI=loadstring(game:GetObjects("rbxassetid://92993655011671")[1].Source)()
 
 local Window=UI:CreateWindow()
 
