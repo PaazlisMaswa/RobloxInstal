@@ -5,7 +5,7 @@ local function Missing(t,v,f)
 end
 
 setclipboard=Missing("function",setclipboard,function(text) warn(text) end)
-	
+
 local Services={}
 
 for i,servieName in ipairs({"Workspace","Players","UserInputService","RunService","ReplicatedFirst","ReplicatedStorage","SoundService","Lighting","Teams","InsertService","StarterGui","StarterPack","HttpService"}) do
@@ -16,8 +16,8 @@ for i,servieName in ipairs({"Workspace","Players","UserInputService","RunService
 		end
 	end
 end
-	
-local Workspace,Players,UserInputService,RunService:RunService,ReplicatedFirst,ReplicatedStorage,SoundService,Lighting,Teams,InsertService,StarterGui,StarterPack,HttpService=Services["Workspace"],Services["Players"],Services["UserInputService"],Services["RunService"],Services["ReplicatedFirst"],Services["ReplicatedStorage"],Services["SoundService"],Services["Lighting"],Services["Teams"],Services["InsertService"],Services["StarterGui"],Services["StarterPack"],Services["HttpService"]
+
+local Workspace,Players,UserInputService,RunService,ReplicatedFirst,ReplicatedStorage,SoundService,Lighting,Teams,InsertService,StarterGui,StarterPack,HttpService=Services["Workspace"],Services["Players"],Services["UserInputService"],Services["RunService"],Services["ReplicatedFirst"],Services["ReplicatedStorage"],Services["SoundService"],Services["Lighting"],Services["Teams"],Services["InsertService"],Services["StarterGui"],Services["StarterPack"],Services["HttpService"]
 
 local Util={}
 do
@@ -220,22 +220,29 @@ do
 	end
 end
 
+warn(1)
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer.PlayerGui or LocalPlayer:WaitForChild("PlayerGui")
 local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
 
+warn(2)
 local UI=loadstring(game:GetObjects("rbxassetid://92993655011671")[1].Source)()
 
 local Window=UI:CreateWindow()
 
+warn(3)
+
 Window:SetTitle("Instal Panel")
+
+warn(4)
 
 -- UI
 local Status,Loader,ContinueButton,MainButton,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
 local Parent=true
 
+warn(5)
 local Outliner=Instance.new("SelectionBox")
 Outliner.Name="Selection"
 Outliner.Color3=Color3.fromRGB(25,153,255)
@@ -1483,14 +1490,14 @@ local function SetUpdate(mode,...)
 		if Status and Status.Parent and not Debounce then
 			Status.Text="Status"
 		end
-		
+
 		if GrabType~="Building" then SetUpdate(2) end
-		
+
 		if PlayerGuiAdded then
 			PlayerGuiAdded:Disconnect() 
 			PlayerGuiAdded=nil
 		end
-		
+
 		if TextBox and TextBox.Parent then
 			local visible=(GrabType=="Building" or GrabType=="GiveWalkSpeed" or GrabType=="GiveJump")
 			TextBox.Template.Visible=visible
@@ -1512,11 +1519,11 @@ local function SetUpdate(mode,...)
 			elseif GrabType=="Gui" then
 				local originText=`Use dex/explorer and Add StringValue and named "InstalGui" in PlayerGui`
 				MainLabel.Text=originText
-				
+
 				PlayerGuiAdded=PlayerGui.DescendantAdded:Connect(function(child:Instance)
 					if child:IsA("StringValue") and child.Name=="InstalGui" then
 						local success=false
-						
+
 						local value=child.Parent
 						if value then 
 							success=true
@@ -1532,16 +1539,16 @@ local function SetUpdate(mode,...)
 								success=false
 							end
 						end
-						
+
 						local nextText=""
-						
+
 						if not success then
 							local s=if value then `"{value.ClassName}", "{value.Name}"` else "nil"
 							nextText=`Failed to added gui (ScreenGui or PlayerGui expected, got {s})`
 						else
 							nextText="Successfully"
 						end
-						
+
 						if MainLabel and MainLabel.Parent then
 							MainLabel.Text=nextText
 							task.wait(2)
@@ -1554,7 +1561,7 @@ local function SetUpdate(mode,...)
 			else
 				MainLabel.Text=""
 			end
-			
+
 			MainLabel.TextScaled=GrabType=="Gui"
 			MainLabel.Template.Visible=GrabType=="Building" or GrabType=="Gui"
 		end
@@ -1724,7 +1731,7 @@ local function Initilized()
 
 	if GrabberModel then GrabberModel:Destroy() GrabberModel=nil end
 
-	
+
 	-- Insert instance by grab type
 	local newModel=Instance.new("Model")
 	newModel.Name="GrabberModel"
@@ -1776,7 +1783,7 @@ end
 
 local function Starting(instance,func)
 	warn("Starting",instance.Name)
-	
+
 	local selections={}
 	local count,length=1,1
 
@@ -1922,12 +1929,12 @@ local function Convert(instance)
 	local cloneInstance=instance:Clone()
 	local visualInstance=Util.GetVisualInstance(instance)
 	local objectName=visualInstance.Name
-	
+
 	local newInstance=Instance.new("Model")
 	newInstance.Name="InstalModel"
 	cloneInstance.Parent=newInstance
 	newInstance.Parent=workspace
-	
+
 	---- Initialize --
 	--Status.Text="Starting For "..objectName
 	--Starting(cloneInstance,function(i,v,length) SetStatus(2,i,length) end)
@@ -1941,12 +1948,12 @@ local function Convert(instance)
 	Status.Text="Create For "..objectName
 	local mainSelections,variables,objectives,advencedVariables=Creating(newInstance,function(i,v,length) SetStatus(2,i,length) end)
 	task.wait(2)
-	
+
 	-- Process --
 	Status.Text="Process For "..objectName
 	local text=Process(mainSelections,advencedVariables,objectives,variables,newInstance,function(i,v,length) SetStatus(2,i,length) end)
 	task.wait(2)
-	
+
 	--visualInstance:Destroy() visualInstance=nil 
 	newInstance:Destroy() newInstance=nil Status.Text="Complete" CanContinue=false
 	task.wait(2)
