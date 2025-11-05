@@ -220,23 +220,17 @@ do
 	end
 end
 
-warn(1)
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer.PlayerGui or LocalPlayer:WaitForChild("PlayerGui")
 local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
 
-warn(2)
-local UI=loadstring(game:GetObjects("rbxassetid://92993655011671")[1].Source)()
+local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
 
 local Window=UI:CreateWindow()
 
-warn(3)
-
 Window:SetTitle("Instal Panel")
-
-warn(4)
 
 -- UI
 local Status,Loader,ContinueButton,MainButton,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
@@ -254,7 +248,7 @@ Outliner.Adornee=nil
 Outliner.Visible=false
 Outliner.Parent=UI.Gui
 
-warn("Minimalist Object Grabber Loaded!")
+warn("Instal Panel Loaded!")
 
 Status=Window:AddContext({
 	Type="TextLabel",
