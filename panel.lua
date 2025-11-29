@@ -226,17 +226,16 @@ local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
 
-local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
+local UI=require(game.ReplicatedStorage.Shared.PaazlisUI)
 
 local Window=UI:CreateWindow()
 
-Window:SetTitle("Instal Panel")
+
+Window:SetTitle("Download")
 
 -- UI
-local Status,Loader,ContinueButton,MainButton,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
-local Parent=true
+local Status,Loader,ContinueButton,MainButton,MainToggle,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
 
-warn(5)
 local Outliner=Instance.new("SelectionBox")
 Outliner.Name="Selection"
 Outliner.Color3=Color3.fromRGB(25,153,255)
@@ -247,25 +246,6 @@ Outliner.Transparency=0
 Outliner.Adornee=nil
 Outliner.Visible=false
 Outliner.Parent=UI.Gui
-
-warn("Instal Panel Loaded!")
-
-Status=Window:AddContext({
-	Type="TextLabel",
-	Name="Status",
-})
-
-Loader=Window:AddContext({
-	Type="TextLabel",
-	Name="(0/0) 0%",
-})
-
-MainLabel=Window:AddContext({
-	Type="TextLabel",
-	Name="",
-})
-
-MainLabel.Template.Visible=false
 
 local MainButton;
 
@@ -1314,21 +1294,6 @@ local Debounce=false
 local IsInput=false
 local PlayerGuiAdded
 
-local SaveGuiData={}
-
-SaveGuiData.ResetButton={
-	Text="Reset",
-	BackgroundColor3=Color3.fromRGB(255,89,89)
-}
-SaveGuiData.DestroyButton={
-	Text="Destroy",
-	BackgroundColor3=Color3.fromRGB(255,124,16)
-}
-SaveGuiData.ContinueButton={
-	Text="Continue",
-	BackgroundColor3=Color3.fromRGB(170, 255, 127)
-}
-
 local CurrentChooseIndex=1
 local MaxBuildingIndex=0
 local BuildingIndex=0
@@ -2041,6 +2006,7 @@ do
 	OnCharacterToolAdded(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
 	CharacterAdded=LocalPlayer.CharacterAdded:Connect(OnCharacterToolAdded)
 end
+
 ---- Grab Building --
 local MouseButton1Down
 do
@@ -2061,7 +2027,7 @@ do
 					end
 				end
 				if Window.Parent then
-					MainLabel.Text=tostring(MaxBuildingIndex)
+					MainLabel.Text="Max Building Index: " .. tostring(MaxBuildingIndex)
 					Status.Text=target.Name.." | "..target.ClassName.." | "..tostring(#target:GetChildren())
 				end
 				SetUpdate(2,target)
@@ -2161,6 +2127,35 @@ local function Destroy()
 	SetUpdate(1)
 end
 
+Status=Window:AddContext({
+	Type="TextLabel",
+	Name="Status",
+})
+
+Loader=Window:AddContext({
+	Type="TextLabel",
+	Name="(0/0) 0%",
+})
+
+-- Selector UI --
+SelectorButton=Window:AddContext({
+	Type="Selector",
+	Options=GrabTypeList,
+	Value=GrabTypeList[1],
+	NoCap=true,
+	Callback=function(value,key)
+		GrabType=value
+		SetUpdate(3)
+	end,
+})
+
+MainLabel=Window:AddContext({
+	Type="TextLabel",
+	Name="",
+})
+
+MainLabel.Template.Visible=false
+
 -- TextBox UI --
 TextBox=Window:AddContext({
 	Type="TextBox",
@@ -2193,18 +2188,6 @@ TextBox=Window:AddContext({
 })
 TextBox.Template.Visible=false
 
--- Selector UI --
-SelectorButton=Window:AddContext({
-	Type="Selector",
-	Options=GrabTypeList,
-	Value=GrabTypeList[1],
-	NoCap=true,
-	Callback=function(value,key)
-		GrabType=value
-		SetUpdate(3)
-	end,
-})
-
 
 -- Add UI --
 AddButton=Window:AddContext({
@@ -2228,6 +2211,8 @@ InstalButton=Window:AddContext({
 	Callback=Instal,
 })
 
+InstalButton.BackgroundColor3=Color3.fromRGB(134,212,127)
+
 -- Destroy UI
 ContinueButton=Window:AddContext({
 	Type="TextButton",
@@ -2237,7 +2222,7 @@ ContinueButton=Window:AddContext({
 	end,
 })
 
-ContinueButton.BackgroundColor3=SaveGuiData.ContinueButton.BackgroundColor3
+ContinueButton.BackgroundColor3=Color3.fromRGB(170,255,127)
 ContinueButton.Template.Visible=false
 
 -- Reset UI --
@@ -2247,7 +2232,7 @@ ResetButton=Window:AddContext({
 	Callback=Reset,
 })
 
-ResetButton.BackgroundColor3=SaveGuiData.ResetButton.BackgroundColor3
+ResetButton.BackgroundColor3=Color3.fromRGB(255,89,89)
 
 -- Destroy UI
 DestroyButton=Window:AddContext({
@@ -2256,5 +2241,4 @@ DestroyButton=Window:AddContext({
 	Callback=Destroy,
 })
 
-
-DestroyButton.BackgroundColor3=SaveGuiData.DestroyButton.BackgroundColor3
+DestroyButton.BackgroundColor3=Color3.fromRGB(255,124,16)
