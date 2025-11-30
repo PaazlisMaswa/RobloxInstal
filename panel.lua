@@ -1,3 +1,5 @@
+-- Created by @Paazlis
+
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local function Missing(t,v,f)
@@ -226,10 +228,9 @@ local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
 
-local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
+local UI=require(game.ReplicatedStorage.Shared.PaazlisUI)
 
 local Window=UI:CreateWindow()
-
 
 Window:SetTitle("Download")
 
@@ -1268,7 +1269,6 @@ do
 	end
 end
 
-
 local RegisteredClasses={}
 local ObjectClasses={}
 local RegisteredGUIClasses={}
@@ -1282,6 +1282,7 @@ local GuiData={}
 local ToolData={}
 local MouseIconData={}
 local ScrollConnections={}
+local Cache={}
 
 local GrabType=GrabTypeList[1]
 local InstalTarget=nil
@@ -1289,6 +1290,7 @@ local BuildingTarget=nil
 local GuiTarget=nil
 local ToolTarget=nil
 
+local Destroyed=false
 local CanContinue=false
 local Debounce=false
 local IsInput=false
@@ -1969,7 +1971,7 @@ local function Instal()
 		ContinueButton.Template.Visible=true
 	end
 	local success,result=pcall(function() return Convert(InstalTarget) end)
-	if not Parent then return end
+	if Destroyed then return end
 	if success and result then
 		setclipboard(result)
 		Status.Text="Copied To Clipboard!"
@@ -1989,62 +1991,6 @@ local function Instal()
 	task.wait(2)
 	Debounce=false
 end
-
----- Character --
-local CharacterAdded,CharacterToolAdded
-do
-	local function OnCharacterToolAdded(character)
-		if CharacterToolAdded then
-			CharacterToolAdded:Disconnect() 
-			CharacterToolAdded=nil
-		end
-		CharacterToolAdded=character.ChildAdded:Connect(function(child)
-			if child:IsA("Tool") then ToolTarget=child end
-		end)
-	end
-
-	OnCharacterToolAdded(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
-	CharacterAdded=LocalPlayer.CharacterAdded:Connect(OnCharacterToolAdded)
-end
-
----- Grab Building --
-local MouseButton1Down
-do
-	MouseButton1Down=Mouse.Button1Down:Connect(function()
-		if not IsInput and GrabType=="Building" then 
-			local target=Mouse.Target
-			if target then
-				MaxBuildingIndex=0
-				local previus=target.Parent
-				while previus~=workspace do
-					MaxBuildingIndex=MaxBuildingIndex+1 
-					if BuildingIndex~=0 and MaxBuildingIndex>=BuildingIndex and previus~=workspace then break end
-					if target.Parent~=workspace then
-						previus=target.Parent
-						target=target.Parent
-					else
-						break
-					end
-				end
-				if Window.Parent then
-					MainLabel.Text="Max Building Index: " .. tostring(MaxBuildingIndex)
-					Status.Text=target.Name.." | "..target.ClassName.." | "..tostring(#target:GetChildren())
-				end
-				SetUpdate(2,target)
-				BuildingTarget=target
-			else
-				MaxBuildingIndex=0
-				if Window.Parent then
-					MainLabel.Text="0"
-					Status.Text="Status"
-				end
-				SetUpdate(2)
-				BuildingTarget=nil
-			end
-		end
-	end)
-end
-
 
 local function Add()
 	if Util.IsStrings(GrabType,BannedGrabTypeList) then 
@@ -2106,26 +2052,68 @@ local function Reset()
 end
 
 local function Destroy()
-	Parent=nil
+	Destroyed=true
 	Window:Destroy()
-	if PlayerGuiAdded then
-		PlayerGuiAdded:Disconnect() 
-		PlayerGuiAdded=nil
-	end
-	if MouseButton1Down then
-		MouseButton1Down:Disconnect() 
-		MouseButton1Down=nil
-	end	
-	if CharacterAdded then
-		CharacterAdded:Disconnect() 
-		CharacterAdded=nil
-	end	
-	if CharacterToolAdded then
-		CharacterToolAdded:Disconnect() 
-		CharacterToolAdded=nil
-	end	
+	Outliner:Destroy()
 	SetUpdate(1)
+	local k,v=next(Cache)
+	while v do
+		Cache[k]=nil
+		v:Disconnect()
+		k,v=next(Cache)
+	end
 end
+
+-- Character
+do
+	local function OnCharacterToolAdded(character)
+		if Cache.CharacterToolAdded then Cache.CharacterToolAdded:Disconnect() Cache.CharacterToolAdded=nil end
+		Cache.CharacterToolAdded=character.ChildAdded:Connect(function(child)
+			if child:IsA("Tool") then ToolTarget=child end
+		end)
+	end
+
+	OnCharacterToolAdded(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+	Cache.CharacterAdded=LocalPlayer.CharacterAdded:Connect(OnCharacterToolAdded)
+end
+
+-- Grab Building
+do
+	Cache.MouseButton1Down=Mouse.Button1Down:Connect(function()
+		if not IsInput and GrabType=="Building" then 
+			local target=Mouse.Target
+			if target then
+				MaxBuildingIndex=0
+				local previus=target.Parent
+				while previus~=workspace do
+					MaxBuildingIndex=MaxBuildingIndex+1 
+					if BuildingIndex~=0 and MaxBuildingIndex>=BuildingIndex and previus~=workspace then break end
+					if target.Parent~=workspace then
+						previus=target.Parent
+						target=target.Parent
+					else
+						break
+					end
+				end
+				if Window.Parent then
+					MainLabel.Text="Max Building Index: " .. tostring(MaxBuildingIndex)
+					Status.Text=target.Name.." | "..target.ClassName.." | "..tostring(#target:GetChildren())
+				end
+				SetUpdate(2,target)
+				BuildingTarget=target
+			else
+				MaxBuildingIndex=0
+				if Window.Parent then
+					MainLabel.Text="0"
+					Status.Text="Status"
+				end
+				SetUpdate(2)
+				BuildingTarget=nil
+			end
+		end
+	end)
+end
+
 
 Status=Window:AddContext({
 	Type="TextLabel",
@@ -2137,7 +2125,7 @@ Loader=Window:AddContext({
 	Name="(0/0) 0%",
 })
 
--- Selector UI --
+-- Selector UI
 SelectorButton=Window:AddContext({
 	Type="Selector",
 	Options=GrabTypeList,
@@ -2156,7 +2144,7 @@ MainLabel=Window:AddContext({
 
 MainLabel.Template.Visible=false
 
--- TextBox UI --
+-- TextBox UI
 TextBox=Window:AddContext({
 	Type="TextBox",
 	PlaceholderText="Type here",
@@ -2186,10 +2174,9 @@ TextBox=Window:AddContext({
 		end
 	end,
 })
-TextBox.Template.Visible=false
+TextBox.Template.Visible=false 
 
-
--- Add UI --
+-- Add UI
 AddButton=Window:AddContext({
 	Type="TextButton",
 	Name="Add",
@@ -2197,21 +2184,23 @@ AddButton=Window:AddContext({
 	Callback=Add,
 })
 
----- Initialize UI --
+-- Initialize UI
 InitializeButton=Window:AddContext({
 	Type="TextButton",
 	Name="Initialize",
 	Callback=Initialize,
 })
 
---[Grab UI]--
+InitializeButton.BackgroundColor3=Color3.fromRGB(242,186,42)
+
+-- Grab UI
 InstalButton=Window:AddContext({
 	Type="TextButton",
 	Name="Instal",
 	Callback=Instal,
 })
 
-InstalButton.BackgroundColor3=Color3.fromRGB(134,212,127)
+InstalButton.BackgroundColor3=Color3.fromRGB(91,154,76)
 
 -- Destroy UI
 ContinueButton=Window:AddContext({
@@ -2222,10 +2211,10 @@ ContinueButton=Window:AddContext({
 	end,
 })
 
-ContinueButton.BackgroundColor3=Color3.fromRGB(170,255,127)
+ContinueButton.BackgroundColor3=Color3.fromRGB(13,105,172)
 ContinueButton.Template.Visible=false
 
--- Reset UI --
+-- Reset UI
 ResetButton=Window:AddContext({
 	Type="TextButton",
 	Name="Reset",
