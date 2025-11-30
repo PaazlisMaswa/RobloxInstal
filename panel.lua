@@ -228,7 +228,7 @@ local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
 
-local UI=require(game.ReplicatedStorage.Shared.PaazlisUI)
+local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
 
 local Window=UI:CreateWindow()
 
