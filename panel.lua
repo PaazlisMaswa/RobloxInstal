@@ -1318,12 +1318,12 @@ local function CreateClasses(property)
 					local property=string.sub(line,space+1,#line)
 
 					if SafeData[datatype]==nil then
-						warn("Minimalist Object Grabber: ","Unhandled data type \""..datatype.."\" "..currentClass.."."..property.." will be ignored.")
+						warn("[InstalObject]: ","Unhandled data type \""..datatype.."\" "..currentClass.."."..property.." will be ignored.")
 						continue=true
 					end
 
 					if not pcall(function() return templateObject[property] end) then
-						warn("Minimalist Object Grabber: ","Unknown property "..currentClass.."."..property.." will be ignored.")
+						warn("[InstalObject]: ","Unknown property "..currentClass.."."..property.." will be ignored.")
 						continue=true
 					end
 					--
@@ -1340,7 +1340,7 @@ local function CreateClasses(property)
 				currentClass=nil
 
 				if not pcall(function() Instance.new(line):Destroy() end) then
-					warn("Minimalist Object Grabber: ","Unknown class \""..line.."\" will be ignored.")
+					warn("[InstalObject]: ","Unknown class \""..line.."\" will be ignored.")
 					continue=true
 				end
 
@@ -1530,7 +1530,6 @@ local function SetUpdate(mode,...)
 end
 
 local function GetGrabData(mode)
-	warn("GetGrabData",mode)
 	mode=tostring(mode)
 	Status.Text=mode
 	task.wait(2)
@@ -1687,11 +1686,9 @@ local function GetGrabData(mode)
 end
 
 local function Initilized()
-	warn("Initilized")
-	--SetUpdate(2)
+	SetUpdate(2)
 
 	if GrabberModel then GrabberModel:Destroy() GrabberModel=nil end
-
 
 	-- Insert instance by grab type
 	local newModel=Instance.new("Model")
@@ -1743,8 +1740,6 @@ local function Cleaning(instance,match,func)
 end
 
 local function Starting(instance,func)
-	warn("Starting",instance.Name)
-
 	local selections={}
 	local count,length=1,1
 
@@ -1768,7 +1763,6 @@ local function Starting(instance,func)
 	local guiModel=instance:FindFirstChild("Gui")
 	if guiModel then
 		selections=guiModel:GetDescendants() length=#selections
-		warn("Cleaning")
 		Cleaning(guiModel,function(v) if CanContinue then CanContinue=false return "Continue" end return Util.IsStrings(v.ClassName,RegisteredGUIClasses) end,function(v) count=count+1 func(count,v,length) end)
 		selections=guiModel:GetDescendants() length=#selections
 		func(length,nil,length)
@@ -1776,7 +1770,6 @@ local function Starting(instance,func)
 	end
 
 	selections=instance:GetDescendants() length=#selections count=0
-	warn("Cleaning")
 	Cleaning(instance,function(v) if CanContinue then CanContinue=false return "Continue" end return Util.IsStrings(v.ClassName,RegisteredClasses) end,function(v) count=count+1 func(count,v,length) end)
 	selections=instance:GetDescendants() length=#selections
 	func(length,nil,length)
@@ -1786,7 +1779,6 @@ local function Starting(instance,func)
 end
 
 local function Creating(instance,func)
-	warn("Creating",instance.Name)
 	local selections,mainSelections,variables,objectives,advencedVariables,count={},{},{},{},{},0
 	selections=instance:GetDescendants()
 	for i,v in ipairs(selections) do
@@ -1879,7 +1871,7 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 		end
 	end
 	func(#selections,nil,#selections)
-	task.wait(2)
+	task.wait(1)
 	return text..textInstance..textProperty
 end
 
@@ -1894,30 +1886,30 @@ local function Convert(instance)
 	local newInstance=Instance.new("Model")
 	newInstance.Name="InstalModel"
 	cloneInstance.Parent=newInstance
-	newInstance.Parent=workspace
+	newInstance.Parent=nil
 
-	---- Initialize --
-	--Status.Text="Starting For "..objectName
-	--Starting(cloneInstance,function(i,v,length) SetStatus(2,i,length) end)
-	--task.wait(2)
+	-- Initialize --
+	Status.Text="Starting For "..objectName
+	Starting(cloneInstance,function(i,v,length) SetStatus(2,i,length) end)
+	task.wait(1)
 
-	--if #newInstance:GetDescendants()>=215 then
-	--	SetStatus(1,"Dangerous!",2,Status.Text)
-	--end
+	if #newInstance:GetDescendants()>=215 then
+		SetStatus(1,"Dangerous!",2,Status.Text)
+	end
 
 	-- Creating --
 	Status.Text="Create For "..objectName
 	local mainSelections,variables,objectives,advencedVariables=Creating(newInstance,function(i,v,length) SetStatus(2,i,length) end)
-	task.wait(2)
+	task.wait(1)
 
 	-- Process --
 	Status.Text="Process For "..objectName
 	local text=Process(mainSelections,advencedVariables,objectives,variables,newInstance,function(i,v,length) SetStatus(2,i,length) end)
-	task.wait(2)
+	task.wait(1)
 
 	--visualInstance:Destroy() visualInstance=nil 
 	newInstance:Destroy() newInstance=nil Status.Text="Complete" CanContinue=false
-	task.wait(2)
+	task.wait(1)
 	return text
 end
 
