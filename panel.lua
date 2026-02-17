@@ -111,7 +111,16 @@ do
 	function Util.IsAs(instance,classNames)
 		return Util.IsSomethings(classNames,function(v) return instance:IsA(v) end)
 	end
-
+	
+	function Util.FindFirstInstance(instance,name,className)
+		local children=instance:GetChildren()
+		for i,v in ipairs(children) do
+			if v.Name==name and (v:IsA(className) or v.ClassName==className) then 
+				return v
+			end 
+		end
+		return nil
+	end
 	function Util.IsStrings(s1,s2)
 		return Util.IsSomethings(s2,function(v) return s1==v end)
 	end
@@ -235,7 +244,7 @@ local Window=UI:CreateWindow()
 Window:SetTitle("Download")
 
 -- UI
-local Status,Loader,ContinueButton,MainButton,MainToggle,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
+local Status,Loader,ContinueButton,MainButton,ClearButton,ResetButton,DestroyButton,TextBox,SelectorButton,ToggleButton,AddButton,InitializeButton,InstalButton
 
 local Outliner=Instance.new("SelectionBox")
 Outliner.Name="Selection"
@@ -1295,10 +1304,11 @@ local CanContinue=false
 local Debounce=false
 local IsInput=false
 local PlayerGuiAdded
+local UseInstal=true
 
 local CurrentChooseIndex=1
-local MaxBuildingIndex=0
 local BuildingIndex=0
+local TotalBuilding=0
 
 local GrabberModel
 
@@ -1464,7 +1474,7 @@ local function SetUpdate(mode,...)
 			TextBox.Template.Visible=visible
 
 			if GrabType=="Building" then
-				TextBox.PlaceholderText="Building Index"
+				TextBox.PlaceholderText="Total Building"
 			elseif GrabType=="GiveWalkSpeed" then
 				TextBox.PlaceholderText="WalkSpeed"
 			elseif GrabType=="GiveJump" then
@@ -1473,10 +1483,18 @@ local function SetUpdate(mode,...)
 				TextBox.Text=""
 			end
 		end
-
+		
+		if ToggleButton and ToggleButton.Parent then
+			ToggleButton.Template.Visible=GrabType=="Building" 
+		end
+		
+		if ClearButton and ClearButton.Parent then
+			ClearButton.Template.Visible=GrabType=="Building" 
+		end
+		
 		if MainLabel and MainLabel.Parent then
 			if GrabType=="Building" then
-				MainLabel.Text="Max Building Index: " .. tostring(MaxBuildingIndex)
+				MainLabel.Text="Building Index: " .. tostring(BuildingIndex)
 			elseif GrabType=="Gui" then
 				local originText=`Use dex/explorer and Add StringValue and named "InstalGui" in PlayerGui`
 				MainLabel.Text=originText
@@ -1799,7 +1817,8 @@ end
 
 local function Process(selections,variables,objectives,targets,parentTarget,func)
 	local isLimit=#selections>=215
-	local text="local V={}"
+
+	local text="local e=Instance.new;local V={}"
 	local textProperty=""
 	local textInstance=""
 	local isNextProperty=false
@@ -1834,7 +1853,7 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 				isInstance=false
 			end
 			if isInstance then
-				textInstance=textInstance..string.format("%s=Instance.new(\'%s\')",variable,class)..";"
+				textInstance=textInstance..string.format("%s=e(\'%s\')",variable,class)..";"
 				if i~=1 then if not isLimit then textProperty=textProperty.."\n" end end
 				local needle,debounces=nil,{}
 				for propertyName,property in Util.GetProperties(ObjectClasses[v.ClassName]) do
@@ -1994,15 +2013,11 @@ local function Add()
 			SetStatus(1,"Building Target Has Empty") 
 			return 
 		end
-		if table.find(BuildingData,BuildingTarget) then 
-			BuildingTarget=nil 
-			--SetUpdate(2) 
+		if BuildingData[BuildingTarget] then 
 			SetStatus(1,"Building Already Added") 
-			--SetUpdate(2) 
 			return 
 		end
-		table.insert(BuildingData,BuildingTarget) BuildingTarget=nil 
-		--SetUpdate(2) 
+		table.insert(BuildingData,BuildingTarget) 
 		if not table.find(GrabTypeData,GrabType) then table.insert(GrabTypeData,GrabType) end
 	elseif GrabType=="MouseIcon" then
 		local newMouse=LocalPlayer:GetMouse()
@@ -2056,6 +2071,25 @@ local function Destroy()
 	end
 end
 
+local function ClearEverthing()
+	if BuildingTarget and GrabType=="Building" then
+		local cloneBuildingTarget:Instance=BuildingTarget:Clone()
+		BuildingTarget=nil
+		Status.Text="Clearing"
+		task.wait(2)
+		for i,v in ipairs(cloneBuildingTarget:GetDescendants()) do
+			if Util.IsAs(v,{"Weld","WeldConstraint","ScreenGui","SurfaceGui","RayValue","Vector3Value","Attachment","IntValue","Color3Value","NumberValue","StringValue"}) then
+				for k,g in pairs(v:GetChildren()) do
+					g.Parent=v
+				end
+				v:Destroy()
+			end
+		end
+		Status.Text="Status"
+		BuildingTarget=cloneBuildingTarget
+	end
+end
+
 -- Character
 do
 	local function OnCharacterToolAdded(character)
@@ -2075,26 +2109,36 @@ do
 		if not IsInput and GrabType=="Building" then 
 			local target=Mouse.Target
 			if target then
-				MaxBuildingIndex=0
-				local previus=target.Parent
-				while previus~=workspace do
-					MaxBuildingIndex=MaxBuildingIndex+1 
-					if BuildingIndex~=0 and MaxBuildingIndex>=BuildingIndex and previus~=workspace then break end
-					if target.Parent~=workspace then
-						previus=target.Parent
-						target=target.Parent
+				BuildingIndex=0
+	
+				local current=target
+				while current and current.Parent and current.Parent~=workspace do
+					current=current.Parent
+					BuildingIndex=BuildingIndex+1 
+					
+					if UseInstal then
+						local instalInstance=Util.FindFirstInstance(current,"Instal","StringValue")
+						if instalInstance then
+							target=instalInstance.Parent
+							instalInstance:Destroy()
+							break
+						end
 					else
-						break
+						if TotalBuilding>0 and BuildingIndex>=TotalBuilding then
+							target=current
+							break
+						end
 					end
 				end
+				
 				if Window.Parent then
-					MainLabel.Text="Max Building Index: " .. tostring(MaxBuildingIndex)
+					MainLabel.Text="Building Index: " .. tostring(BuildingIndex)
 					Status.Text=target.Name.." | "..target.ClassName.." | "..tostring(#target:GetChildren())
 				end
 				SetUpdate(2,target)
 				BuildingTarget=target
 			else
-				MaxBuildingIndex=0
+				BuildingIndex=0
 				if Window.Parent then
 					MainLabel.Text="0"
 					Status.Text="Status"
@@ -2105,7 +2149,6 @@ do
 		end
 	end)
 end
-
 
 Status=Window:AddContext({
 	Type="TextLabel",
@@ -2144,7 +2187,8 @@ TextBox=Window:AddContext({
 		local amount=tonumber(text)
 		if amount then
 			if GrabType=="Building" then 
-				BuildingIndex=amount
+				TotalBuilding=math.max(amount,0)
+				TextBox.Text=tostring(TotalBuilding)
 			elseif GrabType=="GiveWalkSpeed" or GrabType=="GiveJump" then
 				local character=LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 				if character then 
@@ -2167,6 +2211,24 @@ TextBox=Window:AddContext({
 	end,
 })
 TextBox.Template.Visible=false 
+
+-- Toggle UI
+ToggleButton=Window:AddContext({
+	Type="Toggle",
+	Name="Use Instal",
+	Value=UseInstal,
+	Callback=function(value)
+		UseInstal=value
+	end
+})
+ToggleButton.Template.Visible=false 
+
+ClearButton=Window:AddContext({
+	Type="TextButton",
+	Name="Clear Everthing",
+	Callback=ClearEverthing
+})
+ClearButton.Template.Visible=false 
 
 -- Add UI
 AddButton=Window:AddContext({
@@ -2223,3 +2285,5 @@ DestroyButton=Window:AddContext({
 })
 
 DestroyButton.BackgroundColor3=Color3.fromRGB(255,124,16)
+
+warn("Instal Object Version: 2.2.0")
