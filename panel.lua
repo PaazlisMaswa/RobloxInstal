@@ -1,4 +1,6 @@
 -- Created by @Paazlis
+local PLUGIN_NAME="Instal Object"
+local VERSION="2.2.0"
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -21,230 +23,23 @@ end
 
 local Workspace,Players,UserInputService,RunService,ReplicatedFirst,ReplicatedStorage,SoundService,Lighting,Teams,InsertService,StarterGui,StarterPack,HttpService=Services["Workspace"],Services["Players"],Services["UserInputService"],Services["RunService"],Services["ReplicatedFirst"],Services["ReplicatedStorage"],Services["SoundService"],Services["Lighting"],Services["Teams"],Services["InsertService"],Services["StarterGui"],Services["StarterPack"],Services["HttpService"]
 
-local Util={}
-do
-	function Util.MakeShortInstance(instance)
-		local newFolder=Instance.new("Folder") 
-		newFolder.Parent=instance.Parent 
-		for i,v in ipairs(instance:GetChildren()) do 
-			local chilren=v:GetChildren() 
-			if #chilren==1 then 
-				chilren[1].Parent=newFolder 
-				v:Destroy() 
-			else 
-				v.Parent=newFolder 
-			end 
-		end 
-		for i,v in ipairs(newFolder:GetChildren()) do 
-			v.Parent=instance 
-		end 
-		if #instance:GetChildren()==1 then 
-			local v=instance:GetChildren()[1] 
-			v.Parent=instance.Parent 
-			instance:Destroy() 
-			instance=v 
-		end 
-		newFolder:Destroy() 
-		newFolder=nil 
-		return instance
-	end
-
-	function Util.CopyInstance(className,instance,properties)
-		local newInstance=Instance.new(className)  
-		local i=1  
-		for j,k in pairs(properties) do  
-			local v=properties[i] 
-			if v then 
-				i=i+1 
-				local success=pcall(function() return newInstance[v] end)
-				if success then  
-					newInstance[v]=instance[v] 
-				end 
-			end 
-		end 
-		return newInstance
-	end
-
-	function Util.ConvertMeshPartToSpecialMesh(instance)
-		local properties={"Name","Anchored","Locked","CanCollide","Transparency","Color","Material","Reflectance","CFrame","BackSurface","BottomSurface","FrontSurface","LeftSurface","RightSurface","TopSurface","Size"}
-		if instance:IsA("MeshPart") then
-			local part=Instance.new("Part")
-			for i,v in ipairs(properties) do if pcall(function() return part[v] end) then part[v]=instance[v] end end
-			local specialMesh=Instance.new("SpecialMesh")
-			specialMesh.Name="SpecialMesh"
-			specialMesh.MeshType=Enum.MeshType.FileMesh
-			specialMesh.MeshId=instance.MeshId
-			specialMesh.TextureId=instance.TextureID
-			specialMesh.Scale=(1/instance.MeshSize)*instance.ExtentsSize
-			specialMesh.Parent=part
-			part.Parent=instance.Parent
-			local t={}
-			for j,k in ipairs(instance:GetDescendants()) do if not k:IsA("SurfaceAppearance") then k.Parent=part else table.insert(t,k) end end
-			if next(t) then for i,v in ipairs(t) do if not v:IsA("SurfaceAppearance") then v.Parent=part table.remove(t,i) end end end
-			if next(t) then for i,v in ipairs(t) do v:Destroy() end end
-			instance:Destroy()
-		end
-	end
-
-	function Util.Changed(value,func)
-		coroutine.create(coroutine.create(function()
-			local v1,v2=value(),value() 
-
-			while true do 
-				if v1~=v2 then 
-					v2=v1 v1=v2 
-					local v3=func(v1) 
-					if v3 and typeof(v3)==typeof(v1) then 
-						v2=v3 v1=v3 
-					end 
-				end 
-				v1=value() 
-				task.wait() 
-			end
-		end))
-	end
-
-	function Util.IsSomethings(needles,match)
-		for i,v in ipairs(needles) do if match(v)==true then return true end end return false
-	end
-
-	function Util.IsAs(instance,classNames)
-		return Util.IsSomethings(classNames,function(v) return instance:IsA(v) end)
-	end
-	
-	function Util.FindFirstInstance(instance,name,className)
-		local children=instance:GetChildren()
-		for i,v in ipairs(children) do
-			if v.Name==name and (v:IsA(className) or v.ClassName==className) then 
-				return v
-			end 
-		end
-		return nil
-	end
-	function Util.IsStrings(s1,s2)
-		return Util.IsSomethings(s2,function(v) return s1==v end)
-	end
-
-	function Util.GetLines(s)
-		local lastBreak=0
-
-		local function NextLine()
-			if lastBreak==#s then return nil end
-
-			local line
-			local nextBreak=string.find(s,"\n",lastBreak + 1)			
-
-			if nextBreak then
-				line=s:sub(lastBreak + 1,nextBreak - 1)
-				lastBreak=nextBreak
-			else
-				line=s:sub(lastBreak + 1,#s)
-				lastBreak=#s
-			end
-
-			return line
-		end
-
-		return NextLine
-	end
-
-	function Util.GetAncestorsAndSelf(instance)
-		local current=nil
-
-		local function NextParent()
-			if not current then current=instance else current=current.Parent end return current
-		end
-
-		return NextParent
-	end
-
-	function Util.GetProperties(t)
-		local i=0
-		local function NextProperty() i=i+1 if t[i] then return t[i],t[t[i]],i end end
-		return NextProperty
-	end
-
-	function Util.GetInstanceProperty(instance,propertys,func)
-		for i,v in ipairs(propertys) do 
-			local success=pcall(function() return instance[v] end)
-			if success then
-				pcall(func,typeof(instance[v]),instance[v],v,i)
-			end 
-		end 
-	end
-
-	function Util.CreateVariable(instance:Instance,variables:{[Instance]:string},name:string?)
-		local currentName=type(name)=="string" and name or instance.Name
-
-		-- Remove symbols
-		local nameWithoutSymbols=""
-		for v in string.gmatch(currentName,"[%w_]") do nameWithoutSymbols=nameWithoutSymbols..v end
-
-		-- Check for string
-		local baseName=""
-		if #nameWithoutSymbols==0 then
-			baseName=instance.ClassName
-		elseif string.find(string.sub(nameWithoutSymbols,1,1),"%d") then
-			baseName="_"..nameWithoutSymbols
-		else
-			baseName=nameWithoutSymbols
-		end
-
-		-- Check for original name
-		local isOriginal=true
-		for i,v in pairs(variables) do if v==baseName then isOriginal=false break end end
-		if isOriginal then variables[instance]=baseName return end
-
-		-- Check for duplicate name
-		local count=1
-		local isDuplicate=false
-		while true do
-			isDuplicate=false
-			local mainBaseName=baseName.."_"..tostring(count)
-			for i,v in pairs(variables) do if v==mainBaseName then isDuplicate=true break end end
-			count=count+1
-			if not isDuplicate then variables[instance]=mainBaseName return end
-			task.wait()
-		end
-	end
-
-	function Util.GetVisualInstance(instance)
-		local newInstance=instance:Clone() 
-		newInstance=Util.MakeShortInstance(newInstance) 
-		task.delay(2,function() 
-			newInstance:Destroy() 
-			newInstance=nil 
-		end) 
-		return newInstance
-	end
-
-	function Util.CopyInstanceWith(t,parent,match,valueClasses)
-		for j,k in ipairs(t) do 
-			for i,v in ipairs(k:GetDescendants()) do 
-				if match(v) then 
-					RunService.Stepped:Wait() 
-					local nv=Util.CopyInstance(v.ClassName,v,valueClasses[v.ClassName]) 
-					nv.Parent=parent 
-				end 
-			end 
-		end
-	end
-end
+local Tabler=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxTabler/refs/heads/main/Tabler.luau'))()
+local Instancer=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxInstancer/refs/heads/main/Instancer.luau'))()
+local Strs=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxStrs/refs/heads/main/Strs.luau'))()
+local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
 
 local LocalPlayer=Players.LocalPlayer
-local PlayerGui=LocalPlayer.PlayerGui or LocalPlayer:WaitForChild("PlayerGui")
+local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 local PlayerScripts=LocalPlayer.PlayerScripts
 local Mouse=LocalPlayer:GetMouse()
 local SaveMouseIcon=Mouse.Icon
-
-local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
 
 local Window=UI:CreateWindow()
 
 Window:SetTitle("Download")
 
 -- UI
-local Status,Loader,ContinueButton,MainButton,ClearButton,ResetButton,DestroyButton,TextBox,SelectorButton,ToggleButton,AddButton,InitializeButton,InstalButton
+local Status,Loader,ContinueButton,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
 
 local Outliner=Instance.new("SelectionBox")
 Outliner.Name="Selection"
@@ -256,8 +51,6 @@ Outliner.Transparency=0
 Outliner.Adornee=nil
 Outliner.Visible=false
 Outliner.Parent=UI.Gui
-
-local MainButton;
 
 local CONSTRAINT_PROPERTY=[[
 Attachment
@@ -1114,7 +907,7 @@ do
 	-- Normal --
 	SafeData["bool"]=function(value) return tostring(value) end
 	SafeData["boolean"]=SafeData["bool"]
-	SafeData["float"]=function(value) return ("%.3f"):format(value) end
+	SafeData["float"]=function(value) return ("%.2f"):format(value) end
 	SafeData["int"]=SafeData["bool"]
 	SafeData["number"]=SafeData["bool"]
 	SafeData["string"]=function(value) return "\'"..value:gsub("[\"\\]","\\%1"):gsub("\n","\\\\n").."\'" end
@@ -1156,7 +949,7 @@ do
 		local hierarchy=""
 		local previousObjectUsedBrackets=true
 
-		for object in Util.GetAncestorsAndSelf(value) do
+		for object in Instancer.GetAncestorsAndSelf(value) do
 			local safeName=""
 			local shouldUseBrackets=false
 			local currentHierarchy=""
@@ -1201,7 +994,7 @@ do
 				previousObjectUsedBrackets=false
 				if object==StarterGui or hierarchy=="StarterGui" then
 					currentHierarchy="game.StarterGui"
-				elseif object==game.Players.LocalPlayer.PlayerGui or hierarchy=="PlayerGui" then
+				elseif object==PlayerGui or hierarchy=="PlayerGui" then
 					currentHierarchy="game.StarterGui"
 				elseif object==workspace or hierarchy=="workspace" then
 					currentHierarchy="workspace"
@@ -1304,7 +1097,6 @@ local CanContinue=false
 local Debounce=false
 local IsInput=false
 local PlayerGuiAdded
-local UseInstal=true
 
 local CurrentChooseIndex=1
 local BuildingIndex=0
@@ -1315,7 +1107,7 @@ local GrabberModel
 -- Create Object Class --
 local function CreateClasses(property)
 	local currentClass,templateObject,classList,registeredList=nil,nil,{},{}
-	for line in Util.GetLines(property) do
+	for line in Strs.GetLines(property) do
 		if string.sub(line,1,1)~="-" then
 			local continue=false
 
@@ -1328,12 +1120,12 @@ local function CreateClasses(property)
 					local property=string.sub(line,space+1,#line)
 
 					if SafeData[datatype]==nil then
-						warn("[InstalObject]: ","Unhandled data type \""..datatype.."\" "..currentClass.."."..property.." will be ignored.")
+						warn("["..PLUGIN_NAME.."]: ","Unhandled data type \""..datatype.."\" "..currentClass.."."..property.." will be ignored.")
 						continue=true
 					end
 
 					if not pcall(function() return templateObject[property] end) then
-						warn("[InstalObject]: ","Unknown property "..currentClass.."."..property.." will be ignored.")
+						warn("["..PLUGIN_NAME.."]: ","Unknown property "..currentClass.."."..property.." will be ignored.")
 						continue=true
 					end
 					--
@@ -1350,7 +1142,7 @@ local function CreateClasses(property)
 				currentClass=nil
 
 				if not pcall(function() Instance.new(line):Destroy() end) then
-					warn("[InstalObject]: ","Unknown class \""..line.."\" will be ignored.")
+					warn("["..PLUGIN_NAME.."]: ","Unknown class \""..line.."\" will be ignored.")
 					continue=true
 				end
 
@@ -1371,33 +1163,14 @@ local function CreateClasses(property)
 	return classList,registeredList
 end
 
-do
-	ObjectClasses,RegisteredClasses=CreateClasses(REFERENCE_PROPERTY)
-	GUIClasses,RegisteredGUIClasses=CreateClasses(GUI_PROPERTY)
-	REFERENCE_PROPERTY=nil
-	GUI_PROPERTY=nil
-end
+ObjectClasses,RegisteredClasses=CreateClasses(REFERENCE_PROPERTY)
+GUIClasses,RegisteredGUIClasses=CreateClasses(GUI_PROPERTY)
+REFERENCE_PROPERTY=nil
+GUI_PROPERTY=nil
 
---local function UpdateScrollFrameGui(v)
---	local length=#v:GetDescendants()+1
---	if GrabType=="Gui" then
---		if v.Name==Gui.Name then return end
---		local cloneButton=TemplateButton:Clone()
---		cloneButton.Visible=true
---		cloneButton.Name=v.Name
---		cloneButton.Text=table.find(GuiData,v) and v.Name.." "..tostring(length).." Object".." (Insert)" or v.Name.." "..tostring(length).." Object"
---		cloneButton.Parent=ScrollingFrame
---		ScrollConnections[v]=cloneButton.MouseButton1Click:Connect(function()
---			GuiTarget=v
---			if not table.find(GrabTypeData,GrabType) then table.insert(GrabTypeData,GrabType) end
---			if not table.find(GuiData,GuiTarget) then table.insert(GuiData,GuiTarget) else table.remove(GuiData,table.find(GuiData,GuiTarget)) warn("Guiremoved") GuiTarget=nil end
---			if not next(GuiData) then table.remove(GrabTypeData,table.find(GrabTypeData,GrabType)) end
---			cloneButton.Text=table.find(GuiData,v) and v.Name.." "..tostring(length).." Object".." (Insert)" or v.Name.." "..tostring(length).." Object"
---		end)
---	end
---end
+local Module={}
 
-local function SetStatus(mode,...)
+function Module:SetStatus(mode,...)
 	if mode==1 then
 		local message,duration,saveText=...
 		if type(message)~="string" then return end
@@ -1427,7 +1200,7 @@ local function SetStatus(mode,...)
 	end
 end
 
-local function SetUpdate(mode,...)
+function Module:SetUpdate(mode,...)
 	if mode==1 then
 		GrabTypeData={}
 		GrabType=GrabTypeList[1]
@@ -1448,8 +1221,8 @@ local function SetUpdate(mode,...)
 			Status.Text="Status"
 			Loader.Text="(0/0) 0%"
 		end
-		SetUpdate(2)
-		SetUpdate(3)
+		self:SetUpdate(2)
+		self:SetUpdate(3)
 	elseif mode==2 then
 		local target=...
 		if Outliner.Parent then
@@ -1462,7 +1235,7 @@ local function SetUpdate(mode,...)
 			Status.Text="Status"
 		end
 
-		if GrabType~="Building" then SetUpdate(2) end
+		if GrabType~="Building" then self:SetUpdate(2) end
 
 		if PlayerGuiAdded then
 			PlayerGuiAdded:Disconnect() 
@@ -1482,14 +1255,6 @@ local function SetUpdate(mode,...)
 			else
 				TextBox.Text=""
 			end
-		end
-		
-		if ToggleButton and ToggleButton.Parent then
-			ToggleButton.Template.Visible=GrabType=="Building" 
-		end
-		
-		if ClearButton and ClearButton.Parent then
-			ClearButton.Template.Visible=GrabType=="Building" 
 		end
 		
 		if MainLabel and MainLabel.Parent then
@@ -1547,7 +1312,7 @@ local function SetUpdate(mode,...)
 	end
 end
 
-local function GetGrabData(mode)
+function Module:GetGrabData(mode)
 	mode=tostring(mode)
 	Status.Text=mode
 	task.wait(2)
@@ -1558,10 +1323,10 @@ local function GetGrabData(mode)
 	local needle=nil
 	local list,explorers,needles={},{},{}
 	if mode=="Event" then
-		Util.CopyInstanceWith({Workspace,ReplicatedStorage,ReplicatedFirst},newModel,function(v) if Util.IsAs(v,{"RemoteEvent","RemoteFunction","BindableEvent","BindableFunction","UnreliableRemoteEvent"}) then needle=v.Name.."_"..v.ClassName if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Workspace,ReplicatedStorage,ReplicatedFirst},newModel,function(v) if Instancer.IsAs(v,{"RemoteEvent","RemoteFunction","BindableEvent","BindableFunction","UnreliableRemoteEvent"}) then needle=v.Name.."_"..v.ClassName if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 	elseif mode=="Sound" then
 		explorers={Workspace,ReplicatedStorage,SoundService,LocalPlayer}
-		Util.CopyInstanceWith(explorers,newModel,function(v) if v:IsA("Sound") then needle=tostring(v.SoundId) if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith(explorers,newModel,function(v) if v:IsA("Sound") then needle=tostring(v.SoundId) if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 		if #newModel:GetDescendants()>=215 then Status.Text=mode newModel:ClearAllChildren() task.wait(2) newStringValue.Name=mode.."___SCRIPTING" for j,k in ipairs(explorers) do for i,v in ipairs(k:GetDescendants()) do if v:IsA("Sound") then needle=tostring(v.SoundId) if not table.find(list,needle) then table.insert(list,needle) RunService.Stepped:Wait() Status.Text=mode..": "..needle s=s..needle..";" sCount=sCount+1 if sCount>=60 then sCount=0 s=s.."\n" end end end end end end
 	elseif mode=="Lighting" then
 		local newLighting=Instance.new("Model")
@@ -1631,43 +1396,37 @@ local function GetGrabData(mode)
 		Status.Text=mode..": "..newLighting.Name
 		task.wait(2)
 
-		Util.CopyInstanceWith({Lighting},newModel,function(v) if Util.IsAs(v,{"Sky","BloomEffect","ColorCorrectionEffect","SunRaysEffect","Atmosphere","BlurEffect"}) then Status.Text=mode..": "..v.Name return true end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Lighting},newModel,function(v) if Instancer.IsAs(v,{"Sky","BloomEffect","ColorCorrectionEffect","SunRaysEffect","Atmosphere","BlurEffect"}) then Status.Text=mode..": "..v.Name return true end return false end,ObjectClasses)
 	elseif mode=="Team" then
-		Util.CopyInstanceWith({game.Teams},newModel,function(v) if v:IsA("Team") then needle=v.Name.."_"..tostring(v.TeamColor) if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Teams},newModel,function(v) if v:IsA("Team") then needle=v.Name.."_"..tostring(v.TeamColor) if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 	elseif mode=="Texture" then
-		Util.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Texture") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Texture") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 	elseif mode=="Decal" then
-		Util.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Decal") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Decal") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 	elseif mode=="Trail" then
-		Util.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Trail") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Trail") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 	elseif mode=="Beam" then
-		Util.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Beam") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
+		Instancer.CopyInstanceWith({Workspace,ReplicatedStorage},newModel,function(v) if v:IsA("Beam") then needle=v.Texture if not table.find(list,needle) then table.insert(list,needle) Status.Text=mode..": "..v.Name return true end end return false end,ObjectClasses)
 	elseif mode=="GuiColor" then
-		newStringValue.Name="Gui___SCRIPTING".."Color___SCRIPTING" for j,k in ipairs({PlayerGui,ReplicatedStorage}) do for i,v in ipairs(k:GetDescendants()) do if Util.IsAs(v,{"ScreenGui","Frame","ImageLabel","TextLabel","ImageButton","TextButton","ScrollingFrame","TextBox"}) then Util.GetInstanceProperty(v,{"BackgroundColor3","ImageColor3","BorderColor3","Color","Color3","Value","BrickColor"},function(dataType,propertyValue) if dataType=="Color3" or dataType=="BrickColor" then needle=dataType.."_"..tostring(propertyValue) if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() Status.Text=mode..": "..tostring(propertyValue) sCount=sCount+1 if dataType=="BrickColor" then s=s..tostring(propertyValue)..";" else s=s..SafeData["Color3"](propertyValue)..";" end if sCount>=60 then sCount=0 s=s.."\n" end end end) end end end
+		newStringValue.Name="Gui___SCRIPTING".."Color___SCRIPTING" for j,k in ipairs({PlayerGui,ReplicatedStorage}) do for i,v in ipairs(k:GetDescendants()) do if Instancer.IsAs(v,{"ScreenGui","Frame","ImageLabel","TextLabel","ImageButton","TextButton","ScrollingFrame","TextBox"}) then Instancer.GetInstanceProperty(v,{"BackgroundColor3","ImageColor3","BorderColor3","Color","Color3","Value","BrickColor"},function(dataType,propertyValue) if dataType=="Color3" or dataType=="BrickColor" then needle=dataType.."_"..tostring(propertyValue) if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() Status.Text=mode..": "..tostring(propertyValue) sCount=sCount+1 if dataType=="BrickColor" then s=s..tostring(propertyValue)..";" else s=s..SafeData["Color3"](propertyValue)..";" end if sCount>=60 then sCount=0 s=s.."\n" end end end) end end end
 	elseif mode=="PartColor" then
 		newStringValue.Name="Part___SCRIPTING".."Color___SCRIPTING" 
 		for i,v in ipairs(Workspace:GetDescendants()) do 
 			if v:IsA("BasePart") then 
-				Util.GetInstanceProperty(v,{"BackgroundColor3","ImageColor3","BorderColor3","Color","Color3","Value","BrickColor"},function(dataType,propertyValue) 
+				Instancer.GetInstanceProperty(v,{"BackgroundColor3","ImageColor3","BorderColor3","Color","Color3","Value","BrickColor"},function(dataType,propertyValue) 
 					if dataType=="Color3" or dataType=="BrickColor" then needle=dataType.."_"..tostring(propertyValue) if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() Status.Text=mode..": "..tostring(propertyValue) sCount=sCount+1 if dataType=="BrickColor" then s=s..tostring(propertyValue)..";" else s=s..SafeData["Color3"](propertyValue)..";" end if sCount>=60 then sCount=0 s=s.."\n" end end 
 				end) 
 			end 
 		end
 	elseif mode=="Name"  then
 		newStringValue.Name=mode.."___SCRIPTING" 
-		for j,k in ipairs({Workspace,ReplicatedStorage,Players,Teams,ReplicatedFirst,StarterPack}) do 
-			for i,v in ipairs(k:GetDescendants()) do  
-				Util.GetInstanceProperty(v,{"Name","Value","Message","Text","Print","DisplayName"},function(dataType,propertyValue,propertyName) 
-					if dataType=="string" then local nameFilter="" for v in string.gmatch(propertyValue,"[%w]") do if not Util.IsStrings(v,{"1","2","3","4","5","6","7","8","9","0"}) then nameFilter=nameFilter..v end end if #nameFilter==0 then return end if v.ClassName==nameFilter then return end local newInstance=Instance.new(v.ClassName) if pcall(function() return newInstance[propertyName] end) and newInstance[propertyName]==nameFilter then newInstance:Destroy() return end newInstance:Destroy() if table.find(list,nameFilter) then return end table.insert(list,nameFilter) RunService.Stepped:Wait() Status.Text=mode..": "..nameFilter s=s..nameFilter..";" sCount=sCount+1 if sCount>=60 then sCount=0 s=s.."\n" end end 
-				end) 
-			end 
-		end
+		for j,k in ipairs({Workspace,ReplicatedStorage,Players,Teams,ReplicatedFirst,StarterPack}) do for i,v in ipairs(k:GetDescendants()) do Instancer.GetInstanceProperty(v,{"Name","Value","Message","Text","Print","DisplayName"},function(dataType,propertyValue,propertyName)  if dataType=="string" then local nameFilter="" for v in string.gmatch(propertyValue,"[%w]") do if not Strs.IsStrings(v,{"1","2","3","4","5","6","7","8","9","0"}) then nameFilter=nameFilter..v end end if #nameFilter==0 then return end if v.ClassName==nameFilter then return end local newInstance=Instance.new(v.ClassName) if pcall(function() return newInstance[propertyName] end) and newInstance[propertyName]==nameFilter then newInstance:Destroy() return end newInstance:Destroy() if table.find(list,nameFilter) then return end table.insert(list,nameFilter) RunService.Stepped:Wait() Status.Text=mode..": "..nameFilter s=s..nameFilter..";" sCount=sCount+1 if sCount>=60 then sCount=0 s=s.."\n" end end end) end end
 	elseif mode=="MouseIcon" then
 		if next(MouseIconData) then newStringValue.Name=mode.."___SCRIPTING" for i,v in ipairs(MouseIconData) do RunService.Stepped:Wait() task.wait(0.1) Status.Text=mode..": "..v s=s..v..";" sCount+=1 if sCount>=50 then sCount=0 s=s.."\n" end end end
 	elseif mode=="Icon" then
-		newStringValue.Name=mode.."___SCRIPTING" for j,k in ipairs({Workspace,ReplicatedStorage,PlayerGui,Teams,ReplicatedFirst}) do for i,v in ipairs(k:GetDescendants()) do Util.GetInstanceProperty(v,{"Texture","Icon","TextureId","Image","HoverImage"},function(dataType,propertyValue) if dataType=="string" then needle=propertyValue if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() task.wait(0.1) Status.Text=mode..": "..needle sCount+=1 s=s..needle..";" if sCount>=60 then sCount=0 s=s.."\n" end end end) end end
+		newStringValue.Name=mode.."___SCRIPTING" for j,k in ipairs({Workspace,ReplicatedStorage,PlayerGui,Teams,ReplicatedFirst}) do for i,v in ipairs(k:GetDescendants()) do Instancer.GetInstanceProperty(v,{"Texture","Icon","TextureId","Image","HoverImage"},function(dataType,propertyValue) if dataType=="string" then needle=propertyValue if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() task.wait(0.1) Status.Text=mode..": "..needle sCount+=1 s=s..needle..";" if sCount>=60 then sCount=0 s=s.."\n" end end end) end end
 	elseif mode=="GuiIcon" then
-		newStringValue.Name="Gui___SCRIPTING".."Icon___SCRIPTING" for i,v in ipairs(PlayerGui:GetDescendants()) do Util.GetInstanceProperty(v,{"Texture","Icon","TextureId","Image","HoverImage"},function(dataType,propertyValue) if dataType=="string" then needle=propertyValue if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() task.wait(0.1) Status.Text=mode..": "..needle sCount+=1 s=s..needle..";" if sCount>=60 then sCount=0 s=s.."\n" end end end) end
+		newStringValue.Name="Gui___SCRIPTING".."Icon___SCRIPTING" for i,v in ipairs(PlayerGui:GetDescendants()) do Instancer.GetInstanceProperty(v,{"Texture","Icon","TextureId","Image","HoverImage"},function(dataType,propertyValue) if dataType=="string" then needle=propertyValue if table.find(list,needle) then return end table.insert(list,needle) RunService.Stepped:Wait() task.wait(0.1) Status.Text=mode..": "..needle sCount+=1 s=s..needle..";" if sCount>=60 then sCount=0 s=s.."\n" end end end) end
 	elseif mode=="Tool" then
 		if not next(ToolData) then  
 			local descendants=ReplicatedStorage:GetDescendants()
@@ -1687,8 +1446,8 @@ local function GetGrabData(mode)
 		if GuiTarget and not table.find(GuiData,GuiTarget) then table.insert(GuiData,GuiTarget) end GuiTarget=nil
 		if next(GuiData) then for i,v in ipairs(GuiData) do RunService.Stepped:Wait() task.wait(0.1) local cv=v:Clone() if cv and cv.Parent==nil then Status.Text=mode..": "..cv.Name cv.Parent=newModel end end end
 	elseif mode=="Building" then
-		if BuildingTarget and not table.find(BuildingData,BuildingTarget) then table.insert(BuildingData,BuildingTarget) end BuildingTarget=nil
-		if next(BuildingData) then for i,v in ipairs(BuildingData) do RunService.Stepped:Wait() task.wait(0.1) local cv=v:Clone() if cv and cv.Parent==nil then RunService.Stepped:Wait() Status.Text=mode..": "..cv.Name cv.Parent=newModel  end end end
+		if BuildingTarget and not BuildingData[BuildingTarget] then BuildingData[BuildingTarget]=true end BuildingTarget=nil
+		if next(BuildingData) then for v,k in pairs(BuildingData) do RunService.Stepped:Wait() local cv=v:Clone() if cv and cv.Parent==nil then RunService.Stepped:Wait() Status.Text=mode..": "..cv.Name cv.Parent=newModel  end end end
 	else
 		return nil
 	end
@@ -1703,20 +1462,30 @@ local function GetGrabData(mode)
 	return newModel
 end
 
-local function Initilized()
-	SetUpdate(2)
+function Module:Initialize()
+	if Debounce then return end
+	Debounce=true
+	Status.Text="Initialize"
+	task.wait(2)
+	self:Initilized()
+	task.wait(2)
+	Status.Text="Status"
+	Debounce=false
+end
+
+function Module:Initilized()
+	self:SetUpdate(2)
 
 	if GrabberModel then GrabberModel:Destroy() GrabberModel=nil end
 
-	-- Insert instance by grab type
 	local newModel=Instance.new("Model")
 	newModel.Name="GrabberModel"
 
 	local newGrabModel=nil
 	if next(GrabTypeData) then
-		for i,m in ipairs(GrabTypeData) do RunService.Stepped:Wait() newGrabModel=GetGrabData(m) if newGrabModel then newGrabModel.Parent=newModel end end
+		for k,v in pairs(GrabTypeData) do RunService.Stepped:Wait() newGrabModel=self:GetGrabData(k) if newGrabModel then newGrabModel.Parent=newModel end end
 	elseif GrabType then
-		newGrabModel=GetGrabData(GrabType)
+		newGrabModel=self:GetGrabData(GrabType)
 		if newGrabModel then newGrabModel.Parent=newModel end
 	end
 
@@ -1733,42 +1502,19 @@ local function Initilized()
 	end
 end
 
-local function Cleaning(instance,match,func)
-	local children=instance:GetChildren() 
-	for i=1,#children,1 do 
-		local v=children[i] 
-		if v then 
-			RunService.Stepped:Wait() 
-			func(v) 
-			local actionMode=match(v) 
-			if actionMode~="Continue" and actionMode==false then 
-				for j,k in ipairs(v:GetChildren()) do 
-					pcall(function() 
-						k.Parent=v.Parent 
-						return k 
-					end) 
-				end 
-				local accept=0 
-				repeat accept=accept+1 task.wait(1) until not next(v:GetChildren()) or accept>=60 or match(v)=="Continue" 
-				v:Destroy() 
-			end 
-			if v.Parent and next(v:GetChildren()) then Cleaning(v,match,func) end 
-		end 
-	end
-end
-
-local function Starting(instance,func)
+function Module:Starting(instance,func)
 	local selections={}
 	local count,length=1,1
-
-	for j,k in ipairs({instance:FindFirstChild("Building"),instance:FindFirstChild("Tool")}) do
+	
+	local packList={instance:FindFirstChild("Building"),instance:FindFirstChild("Tool")}
+	for j,k in ipairs(packList) do
 		if k then
 			selections=k:GetDescendants() length=#selections
 			for i,v in ipairs(selections) do  
 				if v:IsA("MeshPart") then 
 					RunService.Stepped:Wait() 
 					if CanContinue then CanContinue=false continue end 
-					Util.ConvertMeshPartToSpecialMesh(v) 
+					Instancer.ConvertMeshPartToSpecialMesh(v) 
 				end 
 				func(i,v,length) 
 			end 
@@ -1778,44 +1524,45 @@ local function Starting(instance,func)
 		end
 	end
 
-	local guiModel=instance:FindFirstChild("Gui")
-	if guiModel then
-		selections=guiModel:GetDescendants() length=#selections
-		Cleaning(guiModel,function(v) if CanContinue then CanContinue=false return "Continue" end return Util.IsStrings(v.ClassName,RegisteredGUIClasses) end,function(v) count=count+1 func(count,v,length) end)
-		selections=guiModel:GetDescendants() length=#selections
+	local guiPack=instance:FindFirstChild("Gui")
+	if guiPack then
+		selections=guiPack:GetDescendants() length=#selections
+		--Cleaning(guiPack,function(v) if CanContinue then CanContinue=false return "Continue" end return Util.IsStrings(v.ClassName,RegisteredGUIClasses) end,function(v) count=count+1 func(count,v,length) end)
+		selections=guiPack:GetDescendants() length=#selections
 		func(length,nil,length)
 		task.wait(2)
 	end
 
 	selections=instance:GetDescendants() length=#selections count=0
-	Cleaning(instance,function(v) if CanContinue then CanContinue=false return "Continue" end return Util.IsStrings(v.ClassName,RegisteredClasses) end,function(v) count=count+1 func(count,v,length) end)
+	--Cleaning(instance,function(v) if CanContinue then CanContinue=false return "Continue" end return Util.IsStrings(v.ClassName,RegisteredClasses) end,function(v) count=count+1 func(count,v,length) end)
 	selections=instance:GetDescendants() length=#selections
 	func(length,nil,length)
 	task.wait(2)
 
-	Util.MakeShortInstance(instance)
+	Instancer.MakeShortInstance(instance)
 end
 
-local function Creating(instance,func)
+function Module:Creating(instance,func)
 	local selections,mainSelections,variables,objectives,advencedVariables,count={},{},{},{},{},0
 	selections=instance:GetDescendants()
 	for i,v in ipairs(selections) do
 		RunService.Stepped:Wait()
-		if Util.IsStrings(v.ClassName,RegisteredClasses) then 
+		if Strs.IsStrings(v.ClassName,RegisteredClasses) then 
 			count=count+1
-			Util.CreateVariable(v,variables)
+			Instancer.CreateVariable(v,variables)
 			objectives[variables[v]]=v
-			if #selections>=215 then v.Name="" end
+			--if #selections>=215 then v.Name="" end
 			advencedVariables[v]=string.format("%s[\'%s\']","V",count)
 			table.insert(mainSelections,v)
 		end
 		func(i,v,#selections)
 	end
-	func(#mainSelections,nil,#mainSelections) task.wait(2)
+	func(#mainSelections,nil,#mainSelections) 
+	task.wait(2)
 	return mainSelections,variables,objectives,advencedVariables
 end
 
-local function Process(selections,variables,objectives,targets,parentTarget,func)
+function Module:Process(selections,variables,objectives,targets,parentTarget,func)
 	local isLimit=#selections>=215
 
 	local text="local e=Instance.new;local V={}"
@@ -1823,6 +1570,7 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 	local textInstance=""
 	local isNextProperty=false
 	local isInstance=true
+	
 	if not isLimit then text=text.."\n\n" end
 	for i,v in ipairs(selections) do
 		if v then
@@ -1831,7 +1579,7 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 			local variable,class=variables[v],v.ClassName
 			isInstance=true
 			if i~=1 then if not isLimit then textInstance=textInstance.."\n" end end
-			if v:IsA("StringValue") and Util.IsStrings(v.Name,{"Sound___SCRIPTING","Image___SCRIPTING","Icon___SCRIPTING","Gui___SCRIPTINGIcon___SCRIPTING","Gui___SCRIPTINGColor___SCRIPTING","Part___SCRIPTINGColor___SCRIPTING","Name___SCRIPTING","MouseIcon___SCRIPTING"}) then
+			if v:IsA("StringValue") and Strs.IsStrings(v.Name,{"Sound___SCRIPTING","Image___SCRIPTING","Icon___SCRIPTING","Gui___SCRIPTINGIcon___SCRIPTING","Gui___SCRIPTINGColor___SCRIPTING","Part___SCRIPTINGColor___SCRIPTING","Name___SCRIPTING","MouseIcon___SCRIPTING"}) then
 				if v.Name=="Image___SCRIPTING" then 
 					variable="Image" 
 				elseif v.Name=="Icon___SCRIPTING" then 
@@ -1856,7 +1604,7 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 				textInstance=textInstance..string.format("%s=e(\'%s\')",variable,class)..";"
 				if i~=1 then if not isLimit then textProperty=textProperty.."\n" end end
 				local needle,debounces=nil,{}
-				for propertyName,property in Util.GetProperties(ObjectClasses[v.ClassName]) do
+				for propertyName,property in Tabler.GetProperties(ObjectClasses[v.ClassName]) do
 					local s,propertyValue=pcall(function() return v[propertyName] end)
 					if not s or not propertyValue then continue end
 					RunService.Stepped:Wait()
@@ -1866,17 +1614,17 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 					needle=property.DataType.."_"..propertyName 
 					if debounces[needle] then continue end debounces[needle]=true
 					isNextProperty=false
-					if Util.IsStrings(property.DataType,{"number","float","int","short"}) then if tonumber(propertyValue) then isNextProperty=true if propertyValue>=math.huge then textProperty=textProperty..string.format("%s.%s=%s",variable,propertyName,"math.huge")..";" elseif propertyValue<=-math.huge then textProperty=textProperty..string.format("%s.%s=%s",variable,propertyName,"-math.huge")..";" else isNextProperty=false end end end
+					if Strs.IsStrings(property.DataType,{"number","float","int","short"}) then if tonumber(propertyValue) then isNextProperty=true if propertyValue>=math.huge then textProperty=textProperty..string.format("%s.%s=%s",variable,propertyName,"math.huge")..";" elseif propertyValue<=-math.huge then textProperty=textProperty..string.format("%s.%s=%s",variable,propertyName,"-math.huge")..";" else isNextProperty=false end end end
 					if property.DataType=="Object" then if propertyName=="Parent" and v.Parent==parentTarget then isNextProperty=true textProperty=textProperty .. string.format("%s.%s=%s",variable,"Parent","workspace")..";" end end
 					if not isNextProperty then
 						if property.DataType=="Object" then
 							if variables[propertyValue] then
 								textProperty=textProperty .. string.format("%s.%s=%s",variable,propertyName,variables[propertyValue])..";"
 							else
-								warn("[InstalObject]: PROCESS FAILED: ","Object",v.Name,v.ClassName.."."..tostring(propertyName),tostring(objectives[targets[propertyValue]]))
-								if not Util.IsSomethings({"Part","Attachment"},function(v) return string.find(propertyName,v) end) then
-									textProperty=textProperty .. string.format("%s.%s=%s",variable,propertyName,"workspace")..";"
-								end
+								warn("["..PLUGIN_NAME.."]: PROCESS FAILED: ","Object",v.Name,v.ClassName.."."..tostring(propertyName),tostring(objectives[targets[propertyValue]]))
+								--if not Util.IsSomethings({"Part","Attachment"},function(v) return string.find(propertyName,v) end) then
+								--	textProperty=textProperty .. string.format("%s.%s=%s",variable,propertyName,"workspace")..";"
+								--end
 							end
 						else
 							textProperty=textProperty .. string.format("%s.%s=%s",variable,propertyName,SafeData[property.DataType](propertyValue))..";"
@@ -1889,17 +1637,18 @@ local function Process(selections,variables,objectives,targets,parentTarget,func
 			func(i,v,#selections)
 		end
 	end
+	
 	func(#selections,nil,#selections)
 	task.wait(1)
 	return text..textInstance..textProperty
 end
 
-local function Convert(instance)
+function Module:Convert(instance)
 	--if instance.Name~="GrabberModel" then return nil end
 	CanContinue=false
 
 	local cloneInstance=instance:Clone()
-	local visualInstance=Util.GetVisualInstance(instance)
+	local visualInstance=Instancer.GetVisualInstance(instance)
 	local objectName=visualInstance.Name
 
 	local newInstance=Instance.new("Model")
@@ -1909,21 +1658,21 @@ local function Convert(instance)
 
 	-- Initialize --
 	Status.Text="Starting For "..objectName
-	Starting(cloneInstance,function(i,v,length) SetStatus(2,i,length) end)
+	self:Starting(cloneInstance,function(i,v,length) self:SetStatus(2,i,length) end)
 	task.wait(1)
 
-	if #newInstance:GetDescendants()>=215 then
-		SetStatus(1,"Dangerous!",2,Status.Text)
-	end
+	--if #newInstance:GetDescendants()>=215 then
+	--	SetStatus(1,"Dangerous!",2,Status.Text)
+	--end
 
 	-- Creating --
 	Status.Text="Create For "..objectName
-	local mainSelections,variables,objectives,advencedVariables=Creating(newInstance,function(i,v,length) SetStatus(2,i,length) end)
+	local mainSelections,variables,objectives,advencedVariables=self:Creating(newInstance,function(i,v,length) self:SetStatus(2,i,length) end)
 	task.wait(1)
 
 	-- Process --
 	Status.Text="Process For "..objectName
-	local text=Process(mainSelections,advencedVariables,objectives,variables,newInstance,function(i,v,length) SetStatus(2,i,length) end)
+	local text=self:Process(mainSelections,advencedVariables,objectives,variables,newInstance,function(i,v,length) self:SetStatus(2,i,length) end)
 	task.wait(1)
 
 	--visualInstance:Destroy() visualInstance=nil 
@@ -1932,30 +1681,24 @@ local function Convert(instance)
 	return text
 end
 
-local function Initialize()
-	if Debounce then return end
-	Debounce=true
-	Status.Text="Initialize"
-	task.wait(2)
-	Initilized()
-	task.wait(2)
-	Status.Text="Status"
-	Debounce=false
-end
-
-local function Instal()
+function Module:Instal()
 	Status.Text="Instal" 
-	SetUpdate(2) 
+	self:SetUpdate(2) 
 	task.wait(2)
 	if not InstalTarget and not Debounce then
 		if GrabberModel then GrabberModel:Destroy() GrabberModel=nil end
 		local newModel=Instance.new("Model")
 		newModel.Name="GrabberModel"
-		if BuildingTarget and not table.find(BuildingData,BuildingTarget) then table.insert(BuildingData,BuildingTarget) end 
+		if BuildingTarget and not BuildingData[BuildingTarget] then BuildingData[BuildingTarget]=true end 
 		BuildingTarget=nil
 		if next(BuildingData) then
-			local buildingModel=Instance.new("Model") buildingModel.Name="Building" buildingModel.Parent=newModel
-			for i,v in ipairs(BuildingData) do local cloneBuilding=v:Clone() cloneBuilding.Parent=buildingModel end
+			local buildingModel=Instance.new("Model") 
+			buildingModel.Name="Building" 
+			for v,k in pairs(BuildingData) do 
+				local cloneBuilding=v:Clone() 
+				cloneBuilding.Parent=buildingModel 
+			end
+			buildingModel.Parent=newModel
 		end
 		if GuiTarget and not table.find(GuiData,GuiTarget) then table.insert(GuiData,GuiTarget) end 
 		GuiTarget=nil
@@ -1975,56 +1718,57 @@ local function Instal()
 			newModel:Destroy()
 		end
 	end
-	if not InstalTarget then SetStatus(1,"Target Has Empty") return end
+	if not InstalTarget then self:SetStatus(1,"Target Has Empty") return end
 	if Debounce then return end
 	Debounce=true
 	if ContinueButton and ContinueButton.Parent then
 		ContinueButton.Template.Visible=true
 	end
-	local success,result=pcall(function() return Convert(InstalTarget) end)
+	local success,result=pcall(function() return self:Convert(InstalTarget) end)
 	if Destroyed then return end
 	if success and result then
 		setclipboard(result)
 		Status.Text="Copied To Clipboard!"
 	else
 		Status.Text="An Error Occured"
-		warn(result)
+		warn("["..PLUGIN_NAME.."]: Fatal Error |",result)
 	end
 	task.wait(10)
 	Status.Text="Status"
 	Loader.Text="(0/0) 0%"
+	CanContinue=false
 	if ContinueButton and ContinueButton.Parent then
 		ContinueButton.Template.Visible=false
 	end
 	if GrabberModel then GrabberModel:Destroy() GrabberModel=nil end
 	InstalTarget=nil
-	SetUpdate(1)
+	self:SetUpdate(1)
 	task.wait(2)
 	Debounce=false
 end
 
-local function Add()
-	if Util.IsStrings(GrabType,BannedGrabTypeList) then 
-		SetStatus(1,"An Error Occured") 
+function Module:Add()
+	if Strs.IsStrings(GrabType,BannedGrabTypeList) then 
+		self:SetStatus(1,"An Error Occured") 
 		return 
 	end
 	if GrabType=="Building" then
 		if not BuildingTarget then 
-			SetStatus(1,"Building Target Has Empty") 
+			self:SetStatus(1,"Building Target Has Empty") 
 			return 
 		end
 		if BuildingData[BuildingTarget] then 
-			SetStatus(1,"Building Already Added") 
+			self:SetStatus(1,"Building Already Added") 
 			return 
 		end
-		table.insert(BuildingData,BuildingTarget) 
-		if not table.find(GrabTypeData,GrabType) then table.insert(GrabTypeData,GrabType) end
+		BuildingData[BuildingTarget]=true
+		if not GrabTypeData[GrabType] then GrabTypeData[GrabType]=true end
 	elseif GrabType=="MouseIcon" then
 		local newMouse=LocalPlayer:GetMouse()
 		local mouseIconTarget=newMouse.Icon
-		if not mouseIconTarget or #tostring(mouseIconTarget)==0 then SetStatus(1,"MouseIcon Target Has Empty") return end
+		if not mouseIconTarget or #tostring(mouseIconTarget)==0 then self:SetStatus(1,"MouseIcon Target Has Empty") return end
 		if table.find(MouseIconData,mouseIconTarget) then 
-			SetStatus(1,"MouseIcon Already Added") 
+			self:SetStatus(1,"MouseIcon Already Added") 
 			return 
 		end
 		table.insert(MouseIconData,mouseIconTarget) 
@@ -2033,7 +1777,7 @@ local function Add()
 		local character=LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		local toolTargets={}
 		for i,v in ipairs(character:GetChildren()) do if v:IsA("Tool") then table.insert(toolTargets,v) end end
-		if not next(toolTargets) then SetStatus(1,"Tool Target Has Empty") return end
+		if not next(toolTargets) then self:SetStatus(1,"Tool Target Has Empty") return end
 		for i,v in ipairs(toolTargets) do table.insert(ToolData,v:Clone()) end
 		toolTargets={}
 		if not table.find(GrabTypeData,GrabType) then table.insert(GrabTypeData,GrabType) end
@@ -2043,50 +1787,31 @@ local function Add()
 			if not found then
 				table.insert(GuiData,GuiTarget)
 			else
-				SetStatus(1,"Gui Already Added")
+				self:SetStatus(1,"Gui Already Added")
 			end
 		else
-			SetStatus(1,"Gui Target Has Empty") 
+			self:SetStatus(1,"Gui Target Has Empty") 
 		end
 	else
-		if table.find(GrabTypeData,GrabType) then SetStatus(1,"Already Added") return end table.insert(GrabTypeData,GrabType)
+		if GrabTypeData[GrabType] then self:SetStatus(1,"Already Added") return end GrabTypeData[GrabType]=true
 	end
-	SetStatus(1,"Successfully")
+	self:SetStatus(1,"Successfully")
 end
 
-local function Reset()
-	SetUpdate(1)
+function Module:Reset()
+	self:SetUpdate(1)
 end
 
-local function Destroy()
+function Module:Destroy()
 	Destroyed=true
 	Window:Destroy()
 	Outliner:Destroy()
-	SetUpdate(1)
+	self:SetUpdate(1)
 	local k,v=next(Cache)
 	while v do
 		Cache[k]=nil
 		v:Disconnect()
 		k,v=next(Cache)
-	end
-end
-
-local function ClearEverthing()
-	if BuildingTarget and GrabType=="Building" then
-		local cloneBuildingTarget:Instance=BuildingTarget:Clone()
-		BuildingTarget=nil
-		Status.Text="Clearing"
-		task.wait(2)
-		for i,v in ipairs(cloneBuildingTarget:GetDescendants()) do
-			if Util.IsAs(v,{"Weld","WeldConstraint","ScreenGui","SurfaceGui","RayValue","Vector3Value","Attachment","IntValue","Color3Value","NumberValue","StringValue"}) then
-				for k,g in pairs(v:GetChildren()) do
-					g.Parent=v
-				end
-				v:Destroy()
-			end
-		end
-		Status.Text="Status"
-		BuildingTarget=cloneBuildingTarget
 	end
 end
 
@@ -2116,18 +1841,9 @@ do
 					current=current.Parent
 					BuildingIndex=BuildingIndex+1 
 					
-					if UseInstal then
-						local instalInstance=Util.FindFirstInstance(current,"Instal","StringValue")
-						if instalInstance then
-							target=instalInstance.Parent
-							instalInstance:Destroy()
-							break
-						end
-					else
-						if TotalBuilding>0 and BuildingIndex>=TotalBuilding then
-							target=current
-							break
-						end
+					if TotalBuilding>0 and BuildingIndex>=TotalBuilding then
+						target=current
+						break
 					end
 				end
 				
@@ -2135,7 +1851,7 @@ do
 					MainLabel.Text="Building Index: " .. tostring(BuildingIndex)
 					Status.Text=target.Name.." | "..target.ClassName.." | "..tostring(#target:GetChildren())
 				end
-				SetUpdate(2,target)
+				Module:SetUpdate(2,target)
 				BuildingTarget=target
 			else
 				BuildingIndex=0
@@ -2143,7 +1859,7 @@ do
 					MainLabel.Text="0"
 					Status.Text="Status"
 				end
-				SetUpdate(2)
+				Module:SetUpdate(2)
 				BuildingTarget=nil
 			end
 		end
@@ -2168,7 +1884,7 @@ SelectorButton=Window:AddContext({
 	NoCap=true,
 	Callback=function(value,key)
 		GrabType=value
-		SetUpdate(3)
+		Module:SetUpdate(3)
 	end,
 })
 
@@ -2212,37 +1928,23 @@ TextBox=Window:AddContext({
 })
 TextBox.Template.Visible=false 
 
--- Toggle UI
-ToggleButton=Window:AddContext({
-	Type="Toggle",
-	Name="Use Instal",
-	Value=UseInstal,
-	Callback=function(value)
-		UseInstal=value
-	end
-})
-ToggleButton.Template.Visible=false 
-
-ClearButton=Window:AddContext({
-	Type="TextButton",
-	Name="Clear Everthing",
-	Callback=ClearEverthing
-})
-ClearButton.Template.Visible=false 
-
 -- Add UI
 AddButton=Window:AddContext({
 	Type="TextButton",
 	Name="Add",
 	Options=GrabTypeList,
-	Callback=Add,
+	Callback=function()
+		Module:Add()
+	end,
 })
 
 -- Initialize UI
 InitializeButton=Window:AddContext({
 	Type="TextButton",
 	Name="Initialize",
-	Callback=Initialize,
+	Callback=function()
+		Module.Initialize(Module)
+	end,
 })
 
 InitializeButton.BackgroundColor3=Color3.fromRGB(242,186,42)
@@ -2251,7 +1953,9 @@ InitializeButton.BackgroundColor3=Color3.fromRGB(242,186,42)
 InstalButton=Window:AddContext({
 	Type="TextButton",
 	Name="Instal",
-	Callback=Instal,
+	Callback=function()
+		Module:Instal()
+	end,
 })
 
 InstalButton.BackgroundColor3=Color3.fromRGB(91,154,76)
@@ -2272,7 +1976,9 @@ ContinueButton.Template.Visible=false
 ResetButton=Window:AddContext({
 	Type="TextButton",
 	Name="Reset",
-	Callback=Reset,
+	Callback=function()
+		Module:Reset()
+	end,
 })
 
 ResetButton.BackgroundColor3=Color3.fromRGB(255,89,89)
@@ -2281,9 +1987,14 @@ ResetButton.BackgroundColor3=Color3.fromRGB(255,89,89)
 DestroyButton=Window:AddContext({
 	Type="TextButton",
 	Name="Destroy",
-	Callback=Destroy,
+	Callback=function()
+		Module:Destroy()
+	end,
 })
 
 DestroyButton.BackgroundColor3=Color3.fromRGB(255,124,16)
 
-warn("Instal Object Version: 2.2.0")
+local VersionLabel=Window:AddContext({
+	Type="TextLabel",
+	Name="Version: "..VERSION,
+})
