@@ -1,6 +1,7 @@
 -- Created by @Paazlis
 local PLUGIN_NAME="Instal Object"
-local VERSION="2.2.2"
+local VERSION="2.2.3"
+local MAX_CAP=300
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -42,7 +43,7 @@ local IsStrings,GetLines,ToNumberString,GetProperties,IsAs,CopyInstanceWith,GetI
 	Tabler.GetProperties,
 	Instancer.IsAs,Instancer.CopyInstanceWith,Instancer.GetInstanceProperty,Instancer.CreateVariable,Instancer.ConvertMeshPartToSpecialMesh,Instancer.GetAncestorsAndSelf
 
-local MathHuge,MathFloor,MathMax,StringFormat,StringSplit,StringSub,StringFind,StringGmatch,TableInsert,TableConcat,InstanceNew=math.huge,math.floor,math.max,string.format,string.split,string.sub,string.find,string.gmatch,table.insert,table.concat,Instance.new
+local MathHuge,MathFloor,MathMax,StringFormat,StringSplit,StringSub,StringFind,StringGmatch,TableInsert,TableConcat,Color3FromRGB,InstanceNew=math.huge,math.floor,math.max,string.format,string.split,string.sub,string.find,string.gmatch,table.insert,table.concat,Color3.fromRGB,Instance.new
 
 -- UI
 local Status,Loader,ContinueButton,ResetButton,DestroyButton,TextBox,SelectorButton,AddButton,InitializeButton,InstalButton
@@ -916,6 +917,73 @@ function ToNumberString(x:number,maxFloat:number?)
 	return s
 end
 
+local LocalData={
+	["Color3"]={
+		["Prefix"]="fromRGB",
+		["Value"]="Color3.fromRGB"
+	},
+	["Vector2"]={
+		["Prefix"]="V2",
+		["Value"]="Vector2.new"
+	},
+	["Vector3"]={ 
+		["Prefix"]="V3",
+		["Value"]="Vector3.new"
+	},
+	["Vector4"]={ 
+		["Prefix"]="V4",
+		["Value"]="Vector4.new"
+	},
+	["CFrame"]={
+		["Prefix"]="CF",
+		["Value"]="CFrame.new"
+	},
+	["UDim2"]={
+		["Prefix"]="UD2",
+		["Value"]="UDim2.new"
+	},
+	["UDim"]={
+		["Prefix"]="UD",
+		["Value"]="UDim.new"
+	},
+	["BrickColor"]={
+		["Prefix"]="BC",
+		["Value"]="BrickColor.new"
+	},
+	["Rect2D"]={
+		["Prefix"]="R2D",
+		["Value"]="Rect.new"
+	},
+	["PhysicalProperties"]={
+		["Prefix"]="PhyProp",
+		["Value"]="PhysicalProperties.new"
+	},
+	["ColorSequenceKeypoint"]={
+		["Prefix"]="CSeqKey",
+		["Value"]="ColorSequenceKeypoint.new"
+	},
+	["NumberSequenceKeypoint"]={
+		["Prefix"]="NSeqKey",
+		["Value"]="NumberSequenceKeypoint.new"
+	},
+	["FloatSequenceKeypoint"]={
+		["Prefix"]="FSeqKey",
+		["Value"]="FloatSequenceKeypoint.new"
+	},
+	["ColorSequence"]={
+		["Prefix"]="CSeq",
+		["Value"]="ColorSequence.new"
+	},
+	["NumberSequence"]={
+		["Prefix"]="NSeq",
+		["Value"]="NumberSequence.new"
+	},
+	["FloatSequence"]={
+		["Prefix"]="FSeq",
+		["Value"]="FloatSequence.new"
+	}
+}
+
 local SafeData={}
 do
 	-- Normal --
@@ -1023,16 +1091,16 @@ do
 	end
 	-- UserData --
 	SafeData['PhysicalProperties']=function(value)
-		return ("PhysicalProperties.new(%.3f,%.3f,%.3f,%.3f,%.3f)"):format(value.Density,value.Friction,value.Elasticity,value.FrictionWeight,value.ElasticityWeight);
+		return ("PhyProp(%.3f,%.3f,%.3f,%.3f,%.3f)"):format(value.Density,value.Friction,value.Elasticity,value.FrictionWeight,value.ElasticityWeight);
 	end
 	SafeData["Rect2D"]=function(value)
-		return "Rect.new("..tostring(value):gsub("\n",""):gsub(" ","")..")"
+		return "R2D("..tostring(value):gsub("\n",""):gsub(" ","")..")"
 	end
 	SafeData["BrickColor"]=function(value)
-		return ("BrickColor.new(%d,%d,%d)"):format(value.r*255,value.g*255,value.b*255);
+		return ("BC(%d,%d,%d)"):format(value.r*255,value.g*255,value.b*255);
 	end
 	SafeData["Color3"]=function(value)
-		return ("Color3.fromRGB(%d,%d,%d)"):format(value.R*255,value.G*255,value.B*255);
+		return ("fromRGB(%d,%d,%d)"):format(value.R*255,value.G*255,value.B*255);
 	end
 	SafeData["UDim"]=function(value)
 		local list={value.Scale,value.Offset}
@@ -1041,7 +1109,7 @@ do
 			results[i]=ToNumberString(x,3)
 		end
 		local s=TableConcat(results,",")
-		return "UDim.new("..s..")"
+		return "UD("..s..")"
 	end
 	SafeData["UDim2"]=function(value)
 		local results={}
@@ -1054,7 +1122,7 @@ do
 			TableInsert(results,ToNumberString(v,3))
 		end
 		local s=TableConcat(results,",")
-		return "UDim2.new("..s..")"
+		return "UD2("..s..")"
 	end
 	SafeData["Vector2"]=function(value)
 		local list={value.X,value.Y}
@@ -1063,7 +1131,7 @@ do
 			results[i]=ToNumberString(x,3)
 		end
 		local s=TableConcat(results,",")
-		return "Vector2.new("..s..")"
+		return "V2("..s..")"
 	end
 	SafeData["Vector3"]=function(value)
 		local list={value.X,value.Y,value.Z}
@@ -1072,7 +1140,7 @@ do
 			results[i]=ToNumberString(x,3)
 		end
 		local s=TableConcat(results,",")
-		return "Vector3.new("..s..")"
+		return "V3("..s..")"
 	end
 	SafeData["Vector4"]=function(value)
 		local list={value.X,value.Y,value.Z,value.W or value.A}
@@ -1081,7 +1149,7 @@ do
 			results[i]=ToNumberString(x,3)
 		end
 		local s=TableConcat(results,",")
-		return "Vector4.new("..s..")"
+		return "V4("..s..")"
 	end
 	SafeData["CFrame"]=function(value)
 		local list=StringSplit(tostring(value):gsub("\n",""):gsub(" ",""),",")
@@ -1090,38 +1158,38 @@ do
 			results[i]=ToNumberString(x,3)
 		end
 		local s=TableConcat(results,",")
-		return "CFrame.new("..s..")"
+		return "CF("..s..")"
 	end
 	-- Sequence --
 	SafeData["ColorSequenceKeypoint"]=function(value:ColorSequenceKeypoint)
-		return ("ColorSequenceKeypoint.new(%.2f,%s)"):format(value.Time,SafeData["Color3"](value.Value));
+		return ("CSeqKey(%.2f,%s)"):format(value.Time,SafeData["Color3"](value.Value));
 	end
 	SafeData["NumberSequenceKeypoint"]=function(value)
-		return ("NumberSequenceKeypoint.new(%.2f,%.2f)"):format(value.Time,value.Value)
+		return ("NSeqKey(%.2f,%.2f)"):format(value.Time,value.Value)
 	end
 	SafeData["FloatSequenceKeypoint"]=function(value)
-		return ("FloatSequenceKeypoint.new(%.2f,%.2f)"):format(value.Time,value.Value)
+		return ("FSeqKey(%.2f,%.2f)"):format(value.Time,value.Value)
 	end
 	SafeData["ColorSequence"]=function(value)
 		local t={}
 		for i,v in ipairs(value.Keypoints) do  TableInsert(t,SafeData["ColorSequenceKeypoint"](v)..(i<=#value.Keypoints-1 and "," or "")) end
 		local s=""
 		for i,v in ipairs(t) do s=s..v end
-		return ("ColorSequence.new({%s})"):format(s)
+		return ("CSeq({%s})"):format(s)
 	end
 	SafeData["NumberSequence"]=function(value)
 		local t={}
 		for i,v in ipairs(value.Keypoints) do  TableInsert(t,SafeData["NumberSequenceKeypoint"](v)..(i<=#value.Keypoints-1 and "," or "")) end
 		local s=""
 		for i,v in ipairs(t) do s=s..v end
-		return ("NumberSequence.new({%s})"):format(s);
+		return ("NSeq({%s})"):format(s);
 	end
 	SafeData["FloatSequence"]=function(value)
 		local t={}
 		for i,v in ipairs(value.Keypoints) do  TableInsert(t,SafeData["FloatSequenceKeypoint"](v)..(i<=#value.Keypoints-1 and "," or "")) end
 		local s=""
 		for i,v in ipairs(t) do s=s..v end
-		return ("FloatSequence.new({%s})"):format(s);
+		return ("FSeq({%s})"):format(s);
 	end
 end
 
@@ -1176,7 +1244,6 @@ local BuildingIndex=0
 local TotalBuilding=0
 
 local GrabberModel
-
 
 -- Create Object Class --
 function CreateClasses(property)
@@ -1407,11 +1474,12 @@ function Module:GetGrabData(mode)
 		local soundIds={}
 		CopyInstanceWith(explorers,newModel,function(v) 
 			if v.ClassName=="Sound" then 
+				local name=v.Name
 				needle=tostring(v.SoundId) 
 				if not actives[needle] then 
 					actives[needle]=true
-					Status.Text=mode..": "..v.Name 
-					TableInsert(soundIds,needle)
+					Status.Text=mode..": "..name
+					TableInsert(soundIds,{name,needle})
 					return true
 				end 
 			end 
@@ -1419,19 +1487,24 @@ function Module:GetGrabData(mode)
 		end,ObjectClasses)
 		
 		if #soundIds>=200 then 
-			Status.Text="Danger too much sound detected, rebuilding..."
-			newModel:ClearAllChildren()
+			Status.Text="Dangerous!"
 			task.wait(2)
+			Status.Text=""
+			newModel:ClearAllChildren()
 			s="\n local SoundIds={"
 			for i,v in ipairs(soundIds) do
-				Status.Text=mode..": "..v
-				if i==#soundIds then s=s.."'"..v.."'" else s=s.."'"..v.."'," end 
-				if sLen>=maxSLen then s=s.."\n" end  
-				sLen=(sLen+1)%maxSLen 
 				RunService.Stepped:Wait() 
+				Status.Text=mode..": "..v[2]
+				if i==#soundIds then 
+					s=s.."{'"..v[1].."'"..",".."'"..v[2].."'}"
+				else 
+					s=s.."{'"..v[1].."'"..",".."'"..v[2].."'},"
+				end 
+				sLen=(sLen+1)%maxSLen 
+				if sLen==0 then s=s.."\n" end  
 			end
 			s=s.."}\n"
-			s=s.. [[for i,v in ipairs(SoundIds) do local nv=e('Sound') nv.SoundId=v nv.Parent=%s end]] .."\n"
+			s=s.. [[for i,v in ipairs(SoundIds) do local nv=e('Sound') nv.Name=v[1] nv.SoundId=v[2] nv.Parent=%s end]] .."\n"
 		end
 		soundIds={}
 	elseif mode=="Lighting" then
@@ -1561,9 +1634,11 @@ function Module:GetGrabData(mode)
 	local modelChildren=newModel:GetChildren()
 	
 	if #s>0 then
-		local ns=mode~="Sound" and "local "..mode.."s='"..s.."'" or s
+		warn(s)
+		local ns=mode~="Sound" and `local {mode}s=[[{s}]]` or s
 		if #ns>=2000 then
-			Status.Text="This "..mode.." string is too long! and "..tostring(#ns)
+			LastStatus="This "..mode.." string is too long! and "..tostring(#ns)
+			Status.Text=LastStatus
 			task.wait(2)
 		end
 		if mode=="Name" or mode=="PartColor" or mode=="GuiColor" or mode=="Icon" or mode=="GuiIcon" then
@@ -1596,6 +1671,7 @@ function Module:Initialize()
 	
 	local newInstance=InstanceNew("Model")
 	newInstance.Name="InstalModel"
+	
 
 	if next(GrabTypeData) then
 		for k,v in pairs(GrabTypeData) do 
@@ -1620,7 +1696,8 @@ function Module:Initialize()
 	
 	if next(InstalData) then
 		local length=#newInstance:GetDescendants()+1
-		if length>=300 then Status.Text="Dangerous!" else Status.Text="Grab "..tostring(length).." Object" end
+		if length>=MAX_CAP then LastStatus="Dangerous!" else LastStatus="Grab "..tostring(length).." Object" end
+		Status.Text=LastStatus
 		task.wait(2)
 		GrabberModel=newInstance
 		InstalTarget=newInstance
@@ -1636,128 +1713,116 @@ end
 
 function Module:Starting(instance,func)
 	local selections={}
-	local length=0
+	local progress,maxProgress,waitCount=0,0,0
 	local meshParts={}
-	
 	local packList={instance:FindFirstChild("Building"),instance:FindFirstChild("Tool"),instance:FindFirstChild("Gui")}
-	for j,k in ipairs(packList) do
-		if k then
-			selections=k:GetDescendants() 
-			for i,v in ipairs(selections) do if v:IsA("MeshPart") then TableInsert(meshParts,v)  end end
-		end
-	end
-	
+	for j,k in ipairs(packList) do if k then selections=k:GetDescendants()  for i,v in ipairs(selections) do if v:IsA("MeshPart") then maxProgress+=1 TableInsert(meshParts,v) end end end end
 	if next(meshParts) then
-		length=#meshParts
-
+		maxProgress+=#meshParts
 		for i,v in ipairs(meshParts) do
-			RunService.Stepped:Wait() 
 			if CanContinue then CanContinue=false continue end 
-			ConvertMeshPartToSpecialMesh(v) 
-			func(i,v,length) 
+			progress+=2
+			waitCount=(waitCount+1)%15
+			if waitCount==0 then RunService.Stepped:Wait() end 
+			ConvertMeshPartToSpecialMesh(v)
+			func(progress,v,maxProgress) 
 		end 
-		
-		selections=instance:GetDescendants() length=#selections
-		func(length,nil,length) 
+		func(progress,nil,maxProgress) 
 		task.wait(2)
 	end
 end
 
-function Module:Creating(instance,data,func)
+function Module:Creating(instance,realInstance,data,func)
 	local mainSelections,variables,objectives,advencedVariables,count={},{},{},{},0
 	local descendants=instance:GetDescendants()
-
-	local progressIndex=0
-	local maxProgress=#descendants
-	
-	for mode,list in pairs(data) do
-		for j,k in ipairs(list) do
-			if type(k)=="string" then
-				maxProgress+=1
-			end
-		end
-	end
+	local progress,maxProgress,waitCount=0,#descendants,0
+	for mode,list in pairs(data) do for j,k in ipairs(list) do if type(k)=="string" then maxProgress+=1 end end end
 	
 	for i,v in ipairs(descendants) do
-		RunService.Stepped:Wait()
-		progressIndex+=1
 		if IsStrings(v.ClassName,RegisteredClasses) then 
+			progress+=1
+			waitCount=(waitCount+1)%15
+			if waitCount==0 then RunService.Stepped:Wait() end 
 			count=count+1
 			CreateVariable(v,variables)
 			objectives[variables[v]]=v
-			--if #selections>=215 then v.Name="" end
 			advencedVariables[v]=StringFormat("%s[\'%s\']","V",count)
 			TableInsert(mainSelections,v)
+			func(progress,v,maxProgress)
 		end
-		func(progressIndex,v,maxProgress)
 	end
 	
 	for mode,list in pairs(data) do
 		for j,k in ipairs(list) do
 			if type(k)=="string" then
-				progressIndex+=1
-				local v=instance:FindFirstChild(mode)
-				local variable=advencedVariables[v]
-				TableInsert(mainSelections,StringFormat(k,variable))
-				func(progressIndex,v,maxProgress)
+				progress+=1
+				waitCount=(waitCount+1)%15
+				if waitCount==0 then RunService.Stepped:Wait() end 
+				local v=realInstance:FindFirstChild(mode)
+				if v then
+					local variable=advencedVariables[v]
+					TableInsert(mainSelections,StringFormat(k,variable))
+				end
+				func(progress,v,maxProgress)
 			end
 		end
 	end
-
 	func(maxProgress,nil,maxProgress) 
-
 	return mainSelections,variables,objectives,advencedVariables
 end
 
 function Module:Process(selections,variables,objectives,targets,firstParent,func)
-	local isLimit=#selections>=300
-	
-	local text="local e=Instance.new;local V={}"
-	
-	local textCoding=""
-	local textProperty=""
-	local textInstance=""
-	local isNextProperty=false
-	local isInstance=true
-	
-	if not isLimit then text=text.."\n\n" end
-	
-	local progressIndex=0
-	local maxProgress=#selections
+	local isLimit=#selections>=MAX_CAP
+	local textLocal,textCoding,textProperty,textInstance="local","","",""
+	local isNextProperty,isInstance=false,false
+	local foundLocals={}
+	local progress,maxProgress=0,#selections
+	local sPrefix,sValue="",""
 	
 	for i,v in ipairs(selections) do
 		if v then
+			progress+=1
 			RunService.Stepped:Wait()
 			if type(v)=="string" then
 				textCoding=textCoding..v.."\n"
 			else
 				isNextProperty=false
 				local variable,class=variables[v],v.ClassName
+				local isPart=v:IsA("BasePart")
 				isInstance=true
 				local data=InstalData[v.Name]
-				if i~=1 then if not isLimit then textInstance=textInstance.."\n" end end
+				if i~=1 and not isLimit then textInstance=textInstance.."\n" end
 				if isInstance then
 					textInstance=textInstance..StringFormat("%s=e(\'%s\')",variable,class)..";"
-					if i~=1 then if not isLimit then textProperty=textProperty.."\n" end end
+					if i~=1 and not isLimit then textProperty=textProperty.."\n" end
 					local needle,actives=nil,{}
 
 					for propertyName,property in GetProperties(ObjectClasses[v.ClassName]) do
 						RunService.Stepped:Wait()
-
+						
+						local propertyType=property.DataType
+						
 						local s,propertyValue=pcall(function() return v[propertyName] end)
 						if not s or not propertyValue then continue end
 
 						if property.DefaultValue==propertyValue then continue end
-						if property.DataType=="string" and #propertyValue==0 then continue end
-						if isLimit then if (property.DataType=="CFrame" or property.DataType=="PhysicalProperties") then continue end end
-
-						needle=property.DataType.."_"..propertyName 
+						if propertyType=="string" and #propertyValue==0 then continue end
+						if isLimit and (propertyType=="CFrame" or propertyType=="PhysicalProperties") then continue end
+						if isLimit and (propertyType=="string" or propertyType=="bool") and (propertyName=="Name" or (isPart and propertyName=="Anchored")) then continue end
+						
+						needle=propertyType.."_"..propertyName 
 
 						if actives[needle] then continue end 
 						actives[needle]=true
 						isNextProperty=false
-
-						if IsStrings(property.DataType,{"number","float","int","short"}) and tonumber(propertyValue) then 
+						
+						if LocalData[propertyType] and not foundLocals[propertyType] then
+							foundLocals[propertyType]=true
+							table.insert(foundLocals,propertyType)
+							maxProgress+=1
+						end
+						
+						if IsStrings(propertyType,{"number","float","int","short"}) and tonumber(propertyValue) then 
 							isNextProperty=true 
 							if propertyValue>=MathHuge then 
 								textProperty=textProperty..StringFormat("%s.%s=%s",variable,propertyName,"math.huge")..";" 
@@ -1766,7 +1831,7 @@ function Module:Process(selections,variables,objectives,targets,firstParent,func
 							else
 								isNextProperty=false 
 							end
-						elseif property.DataType=="Object" then 
+						elseif propertyType=="Object" then 
 							if propertyName=="Parent" and v.Parent==firstParent then 
 								isNextProperty=true 
 								textProperty=textProperty..StringFormat("%s.%s=%s",variable,"Parent","workspace")..";" 
@@ -1774,7 +1839,7 @@ function Module:Process(selections,variables,objectives,targets,firstParent,func
 						end
 						
 						if not isNextProperty then
-							if property.DataType=="Object" then
+							if propertyType=="Object" then
 								if variables[propertyValue] then
 									textProperty=textProperty..StringFormat("%s.%s=%s",variable,propertyName,variables[propertyValue])..";"
 								else
@@ -1784,55 +1849,96 @@ function Module:Process(selections,variables,objectives,targets,firstParent,func
 									end)
 								end
 							else
-								local formatProperty=StringFormat("%s.%s=%s",variable,propertyName,SafeData[property.DataType](propertyValue))..";"
-								if property.DataType=="string" and propertyName=="Name" and isLimit then
-									formatProperty=""
-								end
-								textProperty=textProperty..formatProperty
+								textProperty=textProperty..StringFormat("%s.%s=%s",variable,propertyName,SafeData[propertyType](propertyValue))..";"
 							end
 							isNextProperty=true
 						end
-						if not isLimit then textProperty=textProperty.."\n" end
 					end
+					textProperty=textProperty.."\n"
 				end
 			end
-			func(i,v,#selections)
+			func(progress,v,maxProgress)
 		end
 	end
 	
-	func(#selections,nil,#selections)
-	task.wait(2)
+	textInstance=textInstance.."\n"
+	textLocal=textLocal.." V,e"
 	
+	for i,k in ipairs(foundLocals) do
+		progress+=1
+		local v=LocalData[k] 
+		if v then
+			RunService.Stepped:Wait()
+			local prefix,value=v.Prefix,v.Value
+			if i==#foundLocals then
+				sPrefix=sPrefix..prefix
+				sValue=sValue..value
+			else
+				sPrefix=sPrefix..prefix..","
+				sValue=sValue..value..","
+			end
+		end
+		func(progress,v,maxProgress)
+	end
+	
+	if #sPrefix~=0 then
+		textLocal=textLocal..","..sPrefix
+	end
+	
+	textLocal=textLocal.."={},Instance.new"
+	
+	if #sValue~=0 then
+		textLocal=textLocal..","..sValue
+	end
+	
+	if not isLimit then textLocal=textLocal.."\n\n" end
+	
+	func(progress,nil,maxProgress)
+
 	local clipText=""
 	if #textCoding>0 then
-		clipText=text..textInstance..textCoding..textProperty
+		clipText=textLocal..textInstance..textCoding..textProperty
 	else
-		clipText=text..textInstance..textProperty
+		clipText=textLocal..textInstance..textProperty
 	end
+
+	foundLocals={}
 	return clipText
 end
 
 function Module:Convert(data,target)
+	local visualInstance=InstanceNew("Model")
+	visualInstance.Name="Visual"
+	target.Parent=visualInstance
+	
 	-- Starting --
 	Status.Text="Starting Object"
 	self:Starting(target,function(i,v,length) Status.Text="Starting Object" self:SetStatus(2,i,length) end)
 	task.wait(2)
 	
-	local length=#target:GetDescendants()
-	if length>=300 then Status.Text="Dangerous!" else Status.Text="Grab "..tostring(length).." Object" task.wait(2) end
-
+	local length=#target:GetDescendants()+1
+	if length>=MAX_CAP then LastStatus="Dangerous!" else LastStatus="Grab "..tostring(length).." Object" end
+	Status.Text=LastStatus
+	task.wait(2)
+	
+	if ContinueButton and ContinueButton.Parent then
+		ContinueButton.Template.Visible=false
+	end
+	
 	-- Creating --
 	Status.Text="Create Object"
-	local mainSelections,variables,objectives,advencedVariables=self:Creating(target,data,function(i,v,length) Status.Text="Create Object" self:SetStatus(2,i,length) end)
+	local mainSelections,variables,objectives,advencedVariables=self:Creating(visualInstance,target,data,function(i,v,length) Status.Text="Create Object" self:SetStatus(2,i,length) end)
 	task.wait(2)
 
 	-- Process --
 	Status.Text="Process Object"
-	local text=self:Process(mainSelections,advencedVariables,objectives,variables,target,function(i,v,length) Status.Text="Process Object" self:SetStatus(2,i,length) end)
+	local text=self:Process(mainSelections,advencedVariables,objectives,variables,visualInstance,function(i,v,length) Status.Text="Process Object" self:SetStatus(2,i,length) end)
 	task.wait(2)
-
+	
+	target.Parent=nil
 	Status.Text="Complete"
 	task.wait(2)
+	visualInstance:Destroy()
 	return text
 end
 
@@ -1887,9 +1993,11 @@ function Module:Instal()
 		ContinueButton.Template.Visible=true
 	end
 	
-	local success,result=pcall(function() return self:Convert(InstalData,InstalTarget) end)
+	local success,result=true,self:Convert(InstalData,InstalTarget)
 	if Destroyed then return end
-	if success and result then
+	if success and type(result)=="string" then
+		Status.Text="Text Length: "..#result
+		task.wait(5)
 		setclipboard(result)
 		Status.Text="Copied To Clipboard!"
 	else
@@ -2098,7 +2206,7 @@ InitializeButton=Window:AddContext({
 	end,
 })
 
-InitializeButton.BackgroundColor3=Color3.fromRGB(242,186,42)
+InitializeButton.BackgroundColor3=Color3FromRGB(242,186,42)
 
 -- Grab UI
 InstalButton=Window:AddContext({
@@ -2109,7 +2217,7 @@ InstalButton=Window:AddContext({
 	end,
 })
 
-InstalButton.BackgroundColor3=Color3.fromRGB(91,154,76)
+InstalButton.BackgroundColor3=Color3FromRGB(91,154,76)
 
 -- Destroy UI
 ContinueButton=Window:AddContext({
@@ -2120,7 +2228,7 @@ ContinueButton=Window:AddContext({
 	end,
 })
 
-ContinueButton.BackgroundColor3=Color3.fromRGB(13,105,172)
+ContinueButton.BackgroundColor3=Color3FromRGB(13,105,172)
 ContinueButton.Template.Visible=false
 
 -- Reset UI
@@ -2132,7 +2240,7 @@ ResetButton=Window:AddContext({
 	end,
 })
 
-ResetButton.BackgroundColor3=Color3.fromRGB(255,89,89)
+ResetButton.BackgroundColor3=Color3FromRGB(255,89,89)
 
 -- Destroy UI
 DestroyButton=Window:AddContext({
@@ -2143,7 +2251,7 @@ DestroyButton=Window:AddContext({
 	end,
 })
 
-DestroyButton.BackgroundColor3=Color3.fromRGB(255,124,16)
+DestroyButton.BackgroundColor3=Color3FromRGB(255,124,16)
 
 local VersionLabel=Window:AddContext({
 	Type="TextLabel",
