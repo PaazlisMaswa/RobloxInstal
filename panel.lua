@@ -1,6 +1,6 @@
 -- Created by @Paazlis
 local PLUGIN_NAME="Instal Object"
-local VERSION="2.2.3"
+local VERSION="2.14"
 local MAX_CAP=300
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -24,10 +24,15 @@ end
 
 local Workspace,Players,UserInputService,RunService,ReplicatedFirst,ReplicatedStorage,SoundService,Lighting,Teams,InsertService,StarterGui,StarterPack,HttpService=Services["Workspace"],Services["Players"],Services["UserInputService"],Services["RunService"],Services["ReplicatedFirst"],Services["ReplicatedStorage"],Services["SoundService"],Services["Lighting"],Services["Teams"],Services["InsertService"],Services["StarterGui"],Services["StarterPack"],Services["HttpService"]
 
-local Tabler=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxTabler/refs/heads/main/Tabler.luau'))()
-local Instancer=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxInstancer/refs/heads/main/Instancer.luau'))()
-local Strs=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxStrs/refs/heads/main/Strs.luau'))()
-local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
+local Tabler=require(game.ReplicatedStorage.Hack.TablerLow)
+local Strs=require(game.ReplicatedStorage.Hack.StrsLow)
+local Instancer=require(game.ReplicatedStorage.Hack.InstancerLow)
+local UI=require(game.ReplicatedStorage.Shared.PaazlisUI)
+
+--local Tabler=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxTabler/refs/heads/main/Tabler.luau'))()
+--local Instancer=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxInstancer/refs/heads/main/Instancer.luau'))()
+--local Strs=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxStrs/refs/heads/main/Strs.luau'))()
+--local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
 
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
@@ -958,18 +963,6 @@ local LocalData={
 		["Prefix"]="PhyProp",
 		["Value"]="PhysicalProperties.new"
 	},
-	["ColorSequenceKeypoint"]={
-		["Prefix"]="CSeqKey",
-		["Value"]="ColorSequenceKeypoint.new"
-	},
-	["NumberSequenceKeypoint"]={
-		["Prefix"]="NSeqKey",
-		["Value"]="NumberSequenceKeypoint.new"
-	},
-	["FloatSequenceKeypoint"]={
-		["Prefix"]="FSeqKey",
-		["Value"]="FloatSequenceKeypoint.new"
-	},
 	["ColorSequence"]={
 		["Prefix"]="CSeq",
 		["Value"]="ColorSequence.new"
@@ -981,6 +974,18 @@ local LocalData={
 	["FloatSequence"]={
 		["Prefix"]="FSeq",
 		["Value"]="FloatSequence.new"
+	},
+	["ColorSequenceKeypoint"]={
+		["Prefix"]="CSeqKey",
+		["Value"]="ColorSequenceKeypoint.new"
+	},
+	["NumberSequenceKeypoint"]={
+		["Prefix"]="NSeqKey",
+		["Value"]="NumberSequenceKeypoint.new"
+	},
+	["FloatSequenceKeypoint"]={
+		["Prefix"]="FSeqKey",
+		["Value"]="FloatSequenceKeypoint.new"
 	}
 }
 
@@ -1405,10 +1410,10 @@ function Module:SetUpdate(mode,...)
 			if GrabType=="Building" then
 				MainLabel.Text="Building Index: " .. tostring(BuildingIndex)
 			elseif GrabType=="Gui" then
-				local originText=`Use dex/explorer and Add StringValue and named "InstalGui" to any ScreenGui in PlayerGui`
+				local originText=`Use dex/explorer and Add StringValue and named "Instal" to any ScreenGui in PlayerGui`
 				MainLabel.Text=originText
 				PlayerGuiAdded=PlayerGui.DescendantAdded:Connect(function(child:Instance)
-					if child:IsA("StringValue") and child.Name=="InstalGui" then
+					if child:IsA("StringValue") and child.Name=="Instal" then
 						local success=false
 						local value=child.Parent
 						if value then 
@@ -1801,12 +1806,13 @@ function Module:Process(selections,variables,objectives,targets,firstParent,func
 						RunService.Stepped:Wait()
 						
 						local propertyType=property.DataType
+						local propertyValue=nil
 						
-						local s,propertyValue=pcall(function() return v[propertyName] end)
-						if not s or not propertyValue then continue end
+						local success,err=pcall(function() propertyValue=v[propertyName] end)
+						if not success then continue end
 
 						if property.DefaultValue==propertyValue then continue end
-						if propertyType=="string" and #propertyValue==0 then continue end
+
 						if isLimit and (propertyType=="CFrame" or propertyType=="PhysicalProperties") then continue end
 						if isLimit and (propertyType=="string" or propertyType=="bool") and (propertyName=="Name" or (isPart and propertyName=="Anchored")) then continue end
 						
@@ -1820,9 +1826,21 @@ function Module:Process(selections,variables,objectives,targets,firstParent,func
 							foundLocals[propertyType]=true
 							table.insert(foundLocals,propertyType)
 							maxProgress+=1
+							
+							local secondPropertyType=""
+							
+							if propertyType=="ColorSequence" or propertyType=="NumberSequence" or propertyType=="FloatSequence" then
+								secondPropertyType=propertyType.."Keypoint"
+							end
+							
+							if #secondPropertyType~=0 and not foundLocals[secondPropertyType] then
+								foundLocals[secondPropertyType]=true
+								table.insert(foundLocals,secondPropertyType)
+								maxProgress+=1
+							end
 						end
-						
-						if IsStrings(propertyType,{"number","float","int","short"}) and tonumber(propertyValue) then 
+		
+						if IsStrings(propertyType,{"number","float","int","short"}) and type(propertyValue)=="number" then 
 							isNextProperty=true 
 							if propertyValue>=MathHuge then 
 								textProperty=textProperty..StringFormat("%s.%s=%s",variable,propertyName,"math.huge")..";" 
