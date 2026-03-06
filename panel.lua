@@ -1,7 +1,7 @@
 -- Created by @Paazlis
 local PLUGIN_NAME="Instal Object"
 local VERSION="2.14"
-local MAX_CAP=300
+local MAX_CAP=350
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -24,15 +24,10 @@ end
 
 local Workspace,Players,UserInputService,RunService,ReplicatedFirst,ReplicatedStorage,SoundService,Lighting,Teams,InsertService,StarterGui,StarterPack,HttpService=Services["Workspace"],Services["Players"],Services["UserInputService"],Services["RunService"],Services["ReplicatedFirst"],Services["ReplicatedStorage"],Services["SoundService"],Services["Lighting"],Services["Teams"],Services["InsertService"],Services["StarterGui"],Services["StarterPack"],Services["HttpService"]
 
-local Tabler=require(game.ReplicatedStorage.Hack.TablerLow)
-local Strs=require(game.ReplicatedStorage.Hack.StrsLow)
-local Instancer=require(game.ReplicatedStorage.Hack.InstancerLow)
-local UI=require(game.ReplicatedStorage.Shared.PaazlisUI)
-
---local Tabler=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxTabler/refs/heads/main/Tabler.luau'))()
---local Instancer=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxInstancer/refs/heads/main/Instancer.luau'))()
---local Strs=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxStrs/refs/heads/main/Strs.luau'))()
---local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
+local Tabler=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxTabler/refs/heads/main/Tabler.luau'))()
+local Instancer=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxInstancer/refs/heads/main/Instancer.luau'))()
+local Strs=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/RobloxStrs/refs/heads/main/Strs.luau'))()
+local UI=loadstring(game:HttpGet('https://raw.githubusercontent.com/PaazlisMaswa/PaazlisUI/refs/heads/main/panel.lua'))()
 
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
